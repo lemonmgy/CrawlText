@@ -1,0 +1,75 @@
+
+    # def handlerAdaptor(fun, **kwargs):
+    #     return lambda event, fun=fun, kwargs=kwargs: fun(event, **kwargs)
+
+    # def handlerAdaptor(self, fun, **kwds):
+    #     '''事件处理函数的适配器，相当于中介，那个event是从那里来的呢，我也纳闷，这也许就是python的伟大之处吧'''
+    #     return lambda event, fun=fun, kwds=kwds: fun(event, **kwds)
+
+    # top = tk.Tk()
+      
+    # def btn_click():
+    #     print("被点击了")
+    #     # tkMessage.showinfo("Hello Python", "Hello Runoob")
+    #     button = tk.Button(top, text="Ex222it")
+    #     button.pack(side="bottom")
+    #     # lb.destroy()
+    #     top.quit()
+
+    # def prin_item(event):
+    #     print(event)
+    #     print(lb.get(lb.curselection()))
+
+    # # li = ['C', 'python', 'php', 'html', 'SQL', 'java']
+    # # list_box = tk.Listbox(top)
+
+    # # for ele in li:
+    # #     list_box.insert(0, ele)
+
+    # # list_box.pack()
+
+    # # btn = tk.Button(top, text="点击", command=btn_click)
+
+    # # btn.pack()
+    # top.geometry('800x600')
+    # top.title("测试gui")
+    # # top.resizable(width=False, height=False)  # 宽不可变, 高可变,默认为True
+
+    # title_label = tk.Label(top, text="我就是个标题")
+    # title_label.pack()
+
+    # roo_frame = tk.Frame(top, bg="green")
+
+    # tk.Label(roo_frame, text="标题", font=('Arial', 30), bg="red").pack()
+
+    # roo_frame.pack()
+
+    # button = tk.Button(top, text="Exit", command=btn_click)
+    # button.pack()
+
+    # items = [
+    #     "上", "下", "上", "下", "上", "下", "上", "下", "上", "下", "上", "下", "上", "下", "上",
+    #     "下", "上", "下", "上", "下", "上", "下", "上", "下", "上", "下", "上", "下", "上", "下",
+    #     "上", "下", "上", "下", "上", "下", "上", "下"
+    # ]
+
+    # var = tk.StringVar()
+
+    # lb = tk.Listbox(roo_frame, listvariable=var)
+    # for ele in items:
+    #     lb.insert(tk.END, ele)
+
+    # lb.bind(
+    #     '<ButtonRelease-1>',
+    #     prin_item,
+    # )
+
+    # sbar = tk.Scrollbar(top, bg="red", width="200")
+    # sbar.pack()
+
+    # btn22 = tk.Button(sbar, text="btn2")
+    # btn22.pack()
+
+    # lb.pack()
+    # top.mainloop()
+
