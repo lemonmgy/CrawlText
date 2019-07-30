@@ -46,10 +46,7 @@ def requestBQYHTML(url, params=None):
             print("出错的链接" + url + "      status = " + str(request.status))
         # print(response.content)
         return response
-
-
-requestBQYHTML("http://www.baidu.com")
-
+ 
 
 def request_original_data(url):
     http = urllib3.PoolManager()
