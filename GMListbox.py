@@ -22,13 +22,17 @@ class GMListbox(object):
             self.back_frame.pack(side=side)
 
     def item_click(self, event):
-        contents_str: str = self.list_box_contents.get()
-        contents_list = contents_str.split(',')
-        if len(self.list_box_books_data) == len(contents_list):
-            index = self.list_box.curselection()[0]
-            book = self.list_box_books_data[index]
-            if self.item_click_callback != None:
-                self.item_click_callback(book)
+        # contents_str: str = self.list_box_contents.get()
+        # contents_list = contents_str.split(',')
+        index = self.list_box.curselection()
+        if len(index) < 0:
+            return
+        index = index[0]
+        if index < 0 or index > len(self.list_box_books_data):
+            return
+        book = self.list_box_books_data[index]
+        if self.item_click_callback != None:
+            self.item_click_callback(book)
 
     def __init__(self, master=None, item_click_callback=None, **kw):
         self.item_click_callback = item_click_callback
@@ -53,10 +57,13 @@ class GMListbox(object):
         del self.list_box_books_data[0:len(self.list_box_books_data)]
         self.list_box_books_data.extend(list_data)
         contents = []
-        if len(self.list_box_books_data):
+        if len(self.list_box_books_data) > 0:
             if isinstance(self.list_box_books_data[0], GMBookInfo):
                 for obj in self.list_box_books_data:
-                    contents.append(obj.name)
+                    name = obj.name
+                    if len(obj.author) > 0:
+                        name = obj.name + "_" + obj.author
+                    contents.append(name)
             elif isinstance(self.list_box_books_data[0], GMBookChapter):
                 for obj in self.list_box_books_data:
                     contents.append(obj.title)

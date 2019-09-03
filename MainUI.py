@@ -78,7 +78,7 @@ class GMHomeFrame(tk.Frame):
         search_frame = tk.Frame(self.window)
         search_frame.pack()
         self.__serach_text_content = tk.StringVar()
-
+        self.__serach_text_content.set(("诸天至尊"))
         serach_entry = tk.Entry(
             search_frame, textvariable=self.__serach_text_content)
         serach_entry.pack(side="left")
@@ -101,7 +101,8 @@ class GMHomeFrame(tk.Frame):
             self.__novel_chapter_list_box = GMListbox(self.window)
             self.__novel_chapter_list_box.back_frame.pack()
 
-        self.__novel_chapter_list_box.update_list_contetns([], book.name)
+        self.__novel_chapter_list_box.update_list_contetns(
+            [], book.name + "_" + book.author)
 
     def __create_novel_view(self):
         self.__week_list_box = GMListbox(self.window,

@@ -34,7 +34,6 @@ def requestBQYHTML(url, params=None):
         #     cert_reqs='CERT_REQUIRED',
         #     ca_certs=certifi.where())
     http = urllib3.PoolManager()
-
     request = http.request("GET", url)
     print(url + "      status = " + str(request.status))
     response = GMResponse()
@@ -44,11 +43,8 @@ def requestBQYHTML(url, params=None):
     finally:
         if len(response.content) == 0:
             print("出错的链接" + url + "      status = " + str(request.status))
-        # print(response.content)
+        print("response.content ==== " + response.content)
         return response
-
-
-requestBQYHTML("http://www.baidu.com")
 
 
 def request_original_data(url):
