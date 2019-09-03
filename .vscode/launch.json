@@ -60,7 +60,14 @@
       "name": "main",
       "type": "python",
       "request": "launch",
-      "program": "/Users/lemonmgy/Desktop/python/CrawlText/main.py",
+      "program": "${workspaceFolder}/main.py",
+      "console": "externalTerminal"
+    },
+    {
+      "name": "wangyiyun",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/wanyiyunyinyue/wangyiyun.py",
       "console": "externalTerminal"
     }
   ]

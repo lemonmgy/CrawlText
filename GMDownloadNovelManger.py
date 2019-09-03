@@ -25,8 +25,8 @@ def download_novel_list_style(url: str = "", book_id: str = "", callback=None):
 def download_novel_with_list_style(url: str = "",
                                    book_id: str = "",
                                    callback=None):
-
     ret = GMCrawlWebDataManger.getNovelListData(url, book_id)
+
     if ret == None:
         print("获取小说信息失败！！！")
     else:
@@ -36,6 +36,8 @@ def download_novel_with_list_style(url: str = "",
             book_name = json_dic['name']
             chapter_title = ""
             chapter_content = ""
+
+            # 章节列表
             for ele_book_info in chapter_list:
                 chapter_title = ele_book_info["title"]
                 chapter_info = GMCrawlWebDataManger.getNovelContentData(
@@ -57,7 +59,7 @@ def download_novel_with_list_style(url: str = "",
                     return
                 GMDocumentManger.appendContent(
                     path, (chapter_title + "\n" + chapter_content))
-                print(chapter_title)
+                print(chapter_title + "——下载完成")
                 if callback != None:
                     callback(chapter_info[0])
 

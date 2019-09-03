@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# p = PyQuery(html)
+# p("#nr .odd a"))  # 是查找id的标签  .是查找class 的标签  link 是查找link 标签 中间的空格表示里层
+
 import GMRequest
 import GMTools
-from GMCrawlWebModels import GMBookInfo, GMModuleBook, GMBookChapter
+from GMCrawlWebModels import GMBookInfo, GMModuleBook, GMBookChapter, GMResponse
 from pyquery import PyQuery
 import re
 import json
@@ -22,6 +25,7 @@ def return_data_deal(o_data):
     return o_data, json_str, json_ret
 
 
+# 首页
 def getHomePageData():
     respone = GMRequest.requestBQYHTML(GMRequest.bqy_host)
 
@@ -121,7 +125,8 @@ def getHomePageData():
         book = GMBookInfo()
         book.name = ele_li('.s2 a').text()
         book.url = ele_li('.s2 a').attr('href')
-        book.book_type = ele_li('.s5').text()
+        book.book_type = ele_li('.s1').text()
+        book.author = ele_li('.s5').text()
         week_module.book_list.append(book)
 
     json_dic = {
@@ -140,10 +145,8 @@ def getNovelListData(url: str = "", book_id: str = ""):
             return None
         else:
             url = GMRequest.appen_bqy_host(book_id + "/")
-
-    html = GMRequest.requestBQYHTML(url)
-    p = PyQuery(html.content)
-
+    response = GMRequest.requestBQYHTML(url)
+    p = PyQuery(response.content)
     book = GMBookInfo()
     box_con_sidebar = p('.box_con #sidebar')
     img = box_con_sidebar('img').attr('src')
@@ -189,7 +192,7 @@ def getNovelListData(url: str = "", book_id: str = ""):
     for ele_dd in box_con_list_dl_dd:
         chapter = GMBookChapter()
         chapter.title = ele_dd('a').text()
-        chapter.url = GMRequest.appen_bqy_host(ele_dd('a').attr('href'))
+        chapter.url = GMRequest.appen_url(url, ele_dd('a').attr('href'))
         chapter_list.append(chapter)
 
     return return_data_deal(book)
@@ -232,10 +235,31 @@ def searchNovelData(name):
     respone = GMRequest.requestBQYHTML(
         GMRequest.appen_bqy_host('modules/article/soshu.php'),
         {"searchkey": name})
-    print(respone.content)
+    # print(respone.content)
+    # print(respone)
     print(
         "\n\n\n\n\n ------------------------------------------------------------------------------ \n\n\n\n\n\n"
     )
+
+    book_list = deal_search_novel_result_page(respone)
+
+    if len(book_list) <= 0:
+        pat = re.compile(r'format=xhtml;.*?"/>')
+        pat_ret = pat.findall(str(respone.content))
+        if len(pat_ret) > 0:
+            url = pat_ret[0]
+            pat = re.compile(r'[0-9]+_[0-9]+')
+            url = pat.findall(str(url))
+            if len(url) > 0:
+                book = GMBookInfo()
+                book.name = name
+                book.url = GMRequest.appen_bqy_host(url[0] + "/")
+                book_list = [book]
+
+    return return_data_deal(book_list)
+
+
+def deal_search_novel_result_page(respone: GMResponse):
     p = PyQuery(respone.content)
     tbody = p('#main #content .grid #nr').items()
 
@@ -257,9 +281,4 @@ def searchNovelData(name):
     for ele in tbody:
         tds = ele('td').items()
         book_list.append(create_book(tds))
-
-    return return_data_deal(book_list)
-
-
-# p = PyQuery(html)
-# p("#nr .odd a"))  # 是查找id的标签  .是查找class 的标签  link 是查找link 标签 中间的空格表示里层
+    return book_list
