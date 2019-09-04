@@ -43,7 +43,7 @@ def requestBQYHTML(url, params=None):
     finally:
         if len(response.content) == 0:
             print("出错的链接" + url + "      status = " + str(request.status))
-        print("response.content ==== " + response.content)
+        # print("response.content ==== " + response.content)
         return response
 
 

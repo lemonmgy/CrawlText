@@ -18,14 +18,14 @@ def replace(content: str, rep: [], be_rep):
 
 # 转json
 def to_json_string(content):
-    return "\"" + str(content) + "\""
+    return "\"" + replace(str(content), ["\""], "”") + "\""
 
 
 def obj_to_json(obj, key: str = None):
     if obj == None:
         return ""
     elif isinstance(obj, str) == True:
-        return obj
+        return replace(str(obj), ["\""], "“")
     elif isinstance(obj, list) == True:
         return list_to_json(obj)
     elif isinstance(obj, dict) == True:

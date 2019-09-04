@@ -14,16 +14,18 @@ import json
 
 # 原始数据， json字符串， json数据
 def return_data_deal(o_data):
+
     json_ret = {}
     json_str = ""
     try:
         json_str = GMTools.obj_to_json(o_data)
         json_ret = json.loads(json_str)
-    finally:
-        pass
+    except:
+        print("json转化失败")
+    else:
+        print("json转化成功")
 
     return o_data, json_str, json_ret
-
 
 # 首页
 def getHomePageData():
