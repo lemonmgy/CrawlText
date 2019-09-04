@@ -3,18 +3,19 @@
 
 import tkinter as tk
 import tkinter.messagebox as tkMessage
-import GMCrawlWebDataManger
-from GMCrawlWebModels import GMModuleBook, GMBookInfo, GMBookChapter
-from GMListbox import GMListbox
-import GMDownloadNovelManger
 import threading
+
+from .gm_list_box import GMListbox
+from ..model import GMModuleBook, GMBookInfo, GMBookChapter, GMDownloadRequest
+from ..controller.gm_crawl_web_data_manger import GMCrawlWebDataManger
+from ..controller.gm_download_novel_manger import GMDownloadNovelManger
 
 
 class GMHomeFrame(tk.Frame):
     window: tk.Tk
     __serach_text_content: tk.StringVar
-    __week_list_box: GMListbox
-    __novel_chapter_list_box: GMListbox = None
+    __week_gm_list_box: GMListbox
+    __novel_chapter_gm_list_box: GMListbox = None
     __selected_book: GMBookInfo = None
     __down_load_btn_content: tk.StringVar
     __downloading_list: []
@@ -31,11 +32,12 @@ class GMHomeFrame(tk.Frame):
             return
 
         chapters = []
-        chapters.extend(self.__novel_chapter_list_box.list_box_books_data)
+        chapters.extend(
+            self.__novel_chapter_gm_list_box.gm_list_box_books_data)
         last_chapter = GMBookChapter()
         last_chapter.title = chapter.title
         chapters.append(last_chapter)
-        self.__novel_chapter_list_box.update_list_contetns(chapters)
+        self.__novel_chapter_gm_list_box.update_list_contetns(chapters)
 
     def downlaod_click(self):
 
@@ -44,8 +46,11 @@ class GMHomeFrame(tk.Frame):
                 return
             self.__downloading_list.append(self.__selected_book)
             self.__down_load_btn_content.set("下载中。。。")
-            GMDownloadNovelManger.download_novel_list_style(
-                self.__selected_book.url, callback=self.downlaod_click_calback)
+            request = GMDownloadRequest()
+            request.url = self.__selected_book.url
+            request.book_id = self.__selected_book.book_id
+            GMDownloadNovelManger.add_download_novel(
+                request, callback=self.downlaod_click_calback)
 
     def __init__(self, master=None, **kw):
         self.window = master
@@ -69,10 +74,10 @@ class GMHomeFrame(tk.Frame):
         if len(content) == 0:
             return
         book_list = GMCrawlWebDataManger.searchNovelData(content)[0]
-        self.__week_list_box.update_list_contetns(book_list)
-        # if self.__novel_chapter_list_box != None:
-        #     self.__novel_chapter_list_box.back_frame.destroy()
-        #     self.__novel_chapter_list_box = None
+        self.__week_gm_list_box.update_list_contetns(book_list)
+        # if self.__novel_chapter_gm_list_box != None:
+        #     self.__novel_chapter_gm_list_box.back_frame.destroy()
+        #     self.__novel_chapter_gm_list_box = None
 
     def __create_search_view(self):
         search_frame = tk.Frame(self.window)
@@ -97,28 +102,36 @@ class GMHomeFrame(tk.Frame):
         if self.__selected_book in self.__downloading_list:
             self.__down_load_btn_content.set("下载中。。。")
 
-        if self.__novel_chapter_list_box == None:
-            self.__novel_chapter_list_box = GMListbox(self.window)
-            self.__novel_chapter_list_box.back_frame.pack()
+        if self.__novel_chapter_gm_list_box == None:
+            self.__novel_chapter_gm_list_box = GMListbox(self.window)
+            self.__novel_chapter_gm_list_box.back_frame.pack()
 
-        self.__novel_chapter_list_box.update_list_contetns(
+        self.__novel_chapter_gm_list_box.update_list_contetns(
             [], book.name + "_" + book.author)
 
     def __create_novel_view(self):
-        self.__week_list_box = GMListbox(self.window,
-                                         self.hot_item_click_callback)
-        self.__week_list_box.pack()
+        self.__week_gm_list_box = GMListbox(self.window,
+                                            self.hot_item_click_callback)
+        self.__week_gm_list_box.pack()
 
     def getdata(self):
         data = GMCrawlWebDataManger.getHomePageData()
         data_json = data[0]
         week_module: GMModuleBook = data_json["week_module"]
-        self.__week_list_box.update_list_contetns(
+        self.__week_gm_list_box.update_list_contetns(
             week_module.book_list, week_module.book_category_des)
 
+    @classmethod
+    def run(cls):
+        main_window = tk.Tk()
+        gm_home_frame = GMHomeFrame(main_window)
+        gm_home_frame.pack()
+        main_window.mainloop()
 
-main_window = tk.Tk()
-home_frame = GMHomeFrame(main_window)
-home_frame.pack()
+    @staticmethod
+    def run2():
+        GMHomeFrame.run()
 
-main_window.mainloop()
+
+if __name__ == "__main__":
+    GMHomeFrame.run2()

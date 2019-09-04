@@ -15,6 +15,7 @@ class GMBookChapter(object):
 class GMBookInfo(object):
     name = ""  # 书名
     url = ""  # 地址
+    book_id = ""  # 书籍类型
     img = ""  # 图片
     author = ""  # 作者
     des = ""  # 描述
@@ -30,5 +31,11 @@ class GMModuleBook(object):
 
 
 class GMResponse(object):
-    request_url = ""
-    content = ""
+    url = ""
+    status = ""
+    data = ""
+
+
+class GMDownloadRequest:
+    url = ""
+    book_id = ""
