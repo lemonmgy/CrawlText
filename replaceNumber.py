@@ -43,7 +43,7 @@ def replaceTitle(title_old):
 
 
 content = ""
-path = GMTool.downloadFilePath("download", "很纯很暧昧", ".txt")
+path = GMTool.downloadTempFilePath("download", "很纯很暧昧", ".txt")
 print(path)
 with open(path, 'rb') as f:
     content = f.read().decode('utf-8')

@@ -1,3 +1,18 @@
 {
-  "python.pythonPath": "/usr/local/bin/python3"
+  "name": "Python",
+  "type": "python",
+  "request": "launch",
+  "stopOnEntry": false,
+  "pythonPath": "${config:python.pythonPath}",
+  "program": "${file}",
+  "cwd": "${workspaceRoot}",
+  "env": {
+    "PYTHONPATH": "${workspaceRoot}"
+  },
+  "envFile": "${workspaceRoot}/.env",
+  "debugOptions": [
+    "WaitOnAbnormalExit",
+    "WaitOnNormalExit",
+    "RedirectOutput"
+  ]
 }
