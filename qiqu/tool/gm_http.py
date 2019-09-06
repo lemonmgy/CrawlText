@@ -47,12 +47,12 @@ class GMHTTP(object):
             new_fields = None
 
         http = urllib3.PoolManager()
-        respone = http.request('GET', url, new_fields, headers)
+        response = http.request('GET', url, new_fields, headers)
 
         gm_r = GMResponse()
         gm_r.url = url
-        gm_r.data = respone.data
-        gm_r.status = respone.status
+        gm_r.data = response.data
+        gm_r.status = response.status
         print(gm_r.url + "      status = " + str(gm_r.status))
 
         return gm_r
@@ -62,11 +62,11 @@ class GMHTTP(object):
 
     @classmethod
     def requestBQYHTML(self, url, params=None):
-        respone = GMHTTP.get(url, params, fields_encoding="gb2312")
+        response = GMHTTP.get(url, params, fields_encoding="gb2312")
         try:
-            respone.data = respone.data.decode('GBK')
+            response.data = response.data.decode('GBK')
         finally:
-            if len(respone.data) == 0:
-                print("出错的链接" + url + "      status = " + str(respone.status))
+            if len(response.data) == 0:
+                print("出错的链接" + url + "      status = " + str(response.status))
             # print("response.data ==== " + response.data)
-            return respone
+            return response

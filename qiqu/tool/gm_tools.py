@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import os
 import json
 
 
@@ -19,6 +20,19 @@ class GMTool(object):
     def to_json_string(self, content):
         return "\"" + self.replace(str(content), ["\""], "”") + "\""
 
+    @classmethod
+    def deal_name(self, name):
+        new_name_key = name
+        if "_" in new_name_key:
+            if new_name_key[0] == "_":
+                index = 0
+                for ele in new_name_key:
+                    if ele != "_":
+                        break
+                    index += 1
+                new_name_key = new_name_key[index:len(new_name_key)]
+        return new_name_key
+
     # 传入一个对象转化为json字符串
     @classmethod
     def obj_to_json(self, obj, key: str = None):
@@ -32,7 +46,8 @@ class GMTool(object):
             return self.dict_to_json(obj)
         else:
             ret_str = ""
-            for name, value in vars(obj).items():
+            for name_key, value in vars(obj).items():
+                name = self.deal_name(name_key)
                 pre = ""
                 if len(ret_str) != 0:
                     pre = ","

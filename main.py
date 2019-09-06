@@ -2,4 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from qiqu import GMHomeFrame
-GMHomeFrame.run()
+
+if __name__ == "__main__":
+    GMHomeFrame.run()

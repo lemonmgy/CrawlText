@@ -32,12 +32,12 @@ class GMCrawlWebDataManger(object):
     # 小说网站首页
     @classmethod
     def getHomePageData(self):
-        respone = GMHTTP.requestBQYHTML(GMHTTP.bqy_host)
+        response = GMHTTP.requestBQYHTML(GMHTTP.bqy_host)
 
         # pat = re.compile(r"hotcontent\">")
         # ret = re.search(pat, )
         # #表示查询的id .为class .items()会是一个生成器
-        p = PyQuery(respone.data)
+        p = PyQuery(response.data)
 
         # <img src="https://www.biquyun.com/files/article/image/14/14055/14055s.jpg"/>
         # a.attr('src') 拿到 src对应的url
@@ -154,6 +154,7 @@ class GMCrawlWebDataManger(object):
         response = GMHTTP.requestBQYHTML(url)
         p = PyQuery(response.data)
         book = GMBookInfo()
+        book.url = url
         box_con_sidebar = p('.box_con #sidebar')
         img = box_con_sidebar('img').attr('src')
         if img == None:
@@ -219,8 +220,8 @@ class GMCrawlWebDataManger(object):
             else:
                 return ""
 
-        respone = GMHTTP.requestBQYHTML(url)
-        p = PyQuery(respone.data)
+        response = GMHTTP.requestBQYHTML(url)
+        p = PyQuery(response.data)
         box_con = p('.content_read .box_con')
         bookname = box_con('.bookname')
 
@@ -242,20 +243,20 @@ class GMCrawlWebDataManger(object):
     @classmethod
     def searchNovelData(self, name):
         # 请求搜索html https://www.biquyun.com/modules/article/soshu.php?searchkey=+%B4%D3%C1%E3%BF%AA%CA%BC
-        respone = GMHTTP.requestBQYHTML(
+        response = GMHTTP.requestBQYHTML(
             GMHTTP.appen_bqy_host('modules/article/soshu.php'),
             {"searchkey": name})
-        # print(respone.data)
-        # print(respone)
+        # print(response.data)
+        # print(response)
         print(
             "\n\n\n\n\n ------------------------------------------------------------------------------ \n\n\n\n\n\n"
         )
 
-        book_list = self.deal_search_novel_result_page(respone)
+        book_list = self.deal_search_novel_result_page(response)
 
         if len(book_list) <= 0:
             pat = re.compile(r'format=xhtml;.*?"/>')
-            pat_ret = pat.findall(str(respone.data))
+            pat_ret = pat.findall(str(response.data))
             if len(pat_ret) > 0:
                 url = pat_ret[0]
                 pat = re.compile(r'[0-9]+_[0-9]+')
@@ -269,8 +270,8 @@ class GMCrawlWebDataManger(object):
         return self.return_data_deal(book_list)
 
     @classmethod
-    def deal_search_novel_result_page(self, respone: GMResponse):
-        p = PyQuery(respone.data)
+    def deal_search_novel_result_page(self, response: GMResponse):
+        p = PyQuery(response.data)
         tbody = p('#main #content .grid #nr').items()
 
         def create_book(tds: list):
