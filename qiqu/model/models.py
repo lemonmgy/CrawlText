@@ -46,8 +46,7 @@ class GMBookChapter(object):
 
 
 class GMBookInfo(object):
-    # name = ""  # 书名
-    # url = ""  # 地址
+    name = ""  # 书名
     book_id = ""  # 书籍类型
     img = ""  # 图片
     author = ""  # 作者

@@ -2,25 +2,203 @@
 # -*- coding: utf-8 -*-
 
 import re
-import os
 import json
+import os
 
 
-class GMTool(object):
+class GMKey(object):
+    @staticmethod
+    def key(data, defaultKey: str, addkey: str = None):
+        """
+        将 数组、元组的元素 or 字典的key 处理为唯一值，
+        默认key  addkey后面追加的key
+        """
+        # 判断data是否满足条件
+        if not isinstance(data, list) and not isinstance(
+                data, tuple) and not isinstance(data, dict):
+            return defaultKey
 
-    # 多处替换文本
+        if not isinstance(addkey, str) or len(addkey) == 0:
+            addkey = "0"
+        return GMKey.__key(data, defaultKey, addkey)
+
+    @staticmethod
+    def __key(data, defaultKey, addkey):
+
+        if defaultKey in data:
+            defaultKey = ("" if len(defaultKey) == 0 else
+                          (defaultKey + "_")) + addkey
+            return GMKey.__key(data, defaultKey, addkey)
+        else:
+            return defaultKey
+
+
+class GMString(object):
     @classmethod
     def replace(self, content: str, rep: [], be_rep):
+        """
+        多处替换文本
+        """
         for a in rep:
             content = content.replace(a, be_rep)
         return content
 
-    # 将key value转化为json字符
     @classmethod
-    def to_json_string(self, content):
-        return "\"" + self.replace(str(content), ["\""], "”") + "\""
+    def remove_tag(self, content, tags):
+        """
+        移除闭合标签 可以数组，或者字符串
+        """
+        ret = str(content)
+        if isinstance(tags, str):
+            ret = ret.replace('<%s>' % str(tags), "")
+            ret = ret.replace('</%s>' % str(tags), "")
+        elif isinstance(tags, list):
+            for tag in tags:
+                ret = ret.replace('<%s>' % tag, "")
+                ret = ret.replace('</%s>' % tag, "")
+        return ret
 
     @classmethod
+    def remove_escape_character(self,
+                                content,
+                                include_garbage_character: bool = False):
+        """移除html符号  """
+        ret = str(content)
+        pat = re.compile(r"&#.+?;")
+        search_ret = re.findall(pat, ret)
+        if not search_ret:
+            for b in search_ret:
+                ret = ret.replace(b, "")
+        if include_garbage_character:
+            ret = self.remove_garbage_character(content)
+        return ret
+
+    @classmethod
+    def remove_garbage_character(self, content: str):
+        """移除空格换行等符号"""
+        char_sys = ['\n', '<br>']
+        # for s in char_sys:
+        #     content = replace(content,
+        #                       re.compile(r'%s+' % (s)).findall(content), s)
+        return self.replace(content, char_sys + ["　", " ", "\xa0"], "")
+
+
+def gm_isinstance(obj, t):
+    """ 判断主要归类到四种大类型 (str) (dict)
+    (list, tuple, set) (int, float, bool, complex) """
+
+    gm_lists = (list, tuple, set)
+    gm_numbers = (str, int, float, bool, complex)
+
+    if t == dict:
+        return isinstance(obj, dict)
+    elif (t in gm_lists):
+        return isinstance(obj, gm_lists)
+    elif (t in gm_numbers):
+        return isinstance(obj, gm_numbers)
+
+
+class GMJson(object):
+    string: str = None
+    json: dict = None
+    model = None
+
+    @staticmethod
+    def loads(s: str):
+        return json.loads(s)
+
+    @staticmethod
+    def dumps(obj, key: str = None):
+        gm_json = GMJson()
+        try:
+            gm_json.model = obj
+            gm_json.string = gm_json.any_to_json_str(obj)
+            if gm_json.string:
+                gm_json.json = json.loads(gm_json.string)
+        except BaseException:
+            print(
+                "json转化失败  -------  \n object- %s  \n string- %s \n json - %s"
+                % (gm_json.model, gm_json.string, gm_json.json))
+            gm_json.model = None
+            gm_json.string = None
+            gm_json.json = None
+        else:
+            print("json转化成功")
+        return gm_json
+
+    # 传入一个对象转化为json字符串
+    def any_to_json_str(self, obj, key: str = None):
+        if not obj:
+            return ""
+        elif gm_isinstance(obj, str):
+            return self.__to_json_string(obj)
+        elif gm_isinstance(obj, list):
+            return self.__list_to_json(obj)
+        elif gm_isinstance(obj, dict):
+            return self.__dict_to_json(obj)
+        else:
+            return self.__obj_to_json_str(obj, key)
+
+    def __obj_to_json_str(self, obj, key: str = None):
+        ret_str = ""
+        for name_key, value in vars(obj).items():
+            name = self.deal_name(name_key)
+            pre = ""
+            if len(ret_str) != 0:
+                pre = ","
+            if not value:
+                value = ""
+
+            if gm_isinstance(value, str):
+                ret_str += pre + self.__to_json_string(
+                    name) + ":" + self.__to_json_string(value)
+            elif gm_isinstance(value, list):
+                ret_str += pre + self.__to_json_string(name) + ":"
+                ret_str += self.__list_to_json(value)
+            elif gm_isinstance(value, dict):
+                ret_str += pre + self.__to_json_string(name) + ":"
+                ret_str += self.__dict_to_json(value)
+            else:
+                obj_str = self.any_to_json_str(value, name)
+                if len(obj_str) != 0:
+                    obj_str = obj_str[1:len(obj_str) - 1]
+                    ret_str += pre + obj_str
+
+        ret_str = "{" + ret_str + "}"
+
+        if key:
+            if len(key) != 0 and len(ret_str) != 0:
+                return "{%s:%s}" % (self.__to_json_string(key), ret_str)
+        return ret_str
+
+    def __list_to_json(self, o_list):
+        ret_str = ""
+        for obj in o_list:
+            pre = ","
+            if len(ret_str) == 0:
+                pre = "["
+            ret_str += pre + self.any_to_json_str(obj)
+        return "[]" if (len(ret_str) == 0) else (ret_str + "]")
+
+    def __dict_to_json(self, dic: dict):
+        ret_str = ""
+        pre = ""
+        for key, value in dic.items():
+            if len(ret_str) != 0:
+                pre = ","
+            ret_str += pre + self.__to_json_string(key) + ":"
+            ret_str += self.any_to_json_str(value)
+
+        ret_str = "{" + ret_str + "}"
+        return ret_str
+
+    # 将key value转化为json字符
+    def __to_json_string(self, content):
+        def deal_character(content):
+            return str(content).replace("\"", "”")
+
+        return "\"" + deal_character(content) + "\""
+
     def deal_name(self, name):
         new_name_key = name
         if "_" in new_name_key:
@@ -33,115 +211,115 @@ class GMTool(object):
                 new_name_key = new_name_key[index:len(new_name_key)]
         return new_name_key
 
-    # 传入一个对象转化为json字符串
-    @classmethod
-    def obj_to_json(self, obj, key: str = None):
-        if obj == None:
-            return ""
-        elif isinstance(obj, str) == True:
-            return self.replace(str(obj), ["\""], "“")
-        elif isinstance(obj, list) == True:
-            return self.list_to_json(obj)
-        elif isinstance(obj, dict) == True:
-            return self.dict_to_json(obj)
-        else:
-            ret_str = ""
-            for name_key, value in vars(obj).items():
-                name = self.deal_name(name_key)
-                pre = ""
-                if len(ret_str) != 0:
-                    pre = ","
-                if value == None:
-                    value = ""
 
-                if isinstance(value, str):
-                    ret_str += pre + self.to_json_string(
-                        name) + ":" + self.to_json_string(value)
-                elif isinstance(value, list):
-                    ret_str += pre + self.to_json_string(name) + ":"
-                    ret_str += self.list_to_json(value)
-                elif isinstance(value, dict):
-                    ret_str += pre + self.to_json_string(name) + ":"
-                    ret_str += self.dict_to_json(value)
-                else:
-                    obj_str = self.obj_to_json(value, name)
-                    if len(obj_str) != 0:
-                        obj_str = obj_str[1:len(obj_str) - 1]
-                        ret_str += pre + obj_str
+class GMPath():
+    """获取路径类"""
 
-            ret_str = "{" + ret_str + "}"
+    @staticmethod
+    def downloadFilePath(fileName: str = "", extension=""):
+        return GMPath.getFilePath('download', fileName, extension)
 
-            if key != None:
-                if len(key) != 0 and len(ret_str) != 0:
-                    return "{%s:%s}" % (self.to_json_string(key), ret_str)
-            return ret_str
+    @staticmethod
+    def downloadTempFilePath(fileName: str = "", extension=""):
+        return GMPath.getFilePath('download/temp', fileName, extension)
 
-    # 列表转化为json字符串
-    @classmethod
-    def list_to_json(self, o_list):
-        ret_str = ""
-        for obj in o_list:
-            pre = ","
-            if len(ret_str) == 0:
-                pre = "["
-            ret_str += pre + self.obj_to_json(obj)
-        return "[]" if (len(ret_str) == 0) else (ret_str + "]")
+    @staticmethod
+    def getFilePath(folder, fileName: str = "", extension=""):
+        # if len(fileName) == 0:
+        #     fileName = "/"
+        #     extension = ""
+        abspath = os.path.abspath(".")
 
-    # 字典转化成json字符串
-    @classmethod
-    def dict_to_json(self, dic: dict):
-        ret_str = ""
-        pre = ""
-        for key, value in dic.items():
-            if len(ret_str) != 0:
-                pre = ","
-            ret_str += pre + self.to_json_string(key) + ":"
-            if isinstance(value, str):
-                ret_str += self.to_json_string(value)
-            elif isinstance(value, list):
-                ret_str += self.list_to_json(value)
-            elif isinstance(value, dict):
-                ret_str += self.dict_to_json(value)
+        if folder and len(folder) > 0:
+            downloadPath = os.path.join(abspath, folder)
+
+        if not os.path.exists(downloadPath):
+            os.mkdir(downloadPath)
+
+        if not fileName or len(fileName) == 0:
+            return downloadPath + "/"
+
+        if len(extension) > 0:
+            extension = ("" if ("." in extension) else ".") + extension
+        return os.path.join(downloadPath, fileName + extension)
+
+
+class GMFileManger(object):
+    """管理内容写入到本地的管理类"""
+
+    @staticmethod
+    def readContent(path):
+        """
+        读取文件内容
+        """
+        if os.path.exists(path):
+            with open(path, 'rb') as f:
+                return f.read().decode('utf-8')
+        return ""
+
+    @staticmethod
+    def replaceContent(path, content):
+        if isinstance(content, (list, tuple, dict)):
+            new_content = None
+            try:
+                new_content = json.dumps(content)
+            except BaseException:
+                pass
             else:
-                ret_str += self.obj_to_json(value)
+                content = new_content
+        elif not isinstance(content, str):
 
-        ret_str = "{" + ret_str + "}"
-        return ret_str
+            new_content = None
+            try:
+                new_content = GMJson.dumps(content)
+            except BaseException:
+                pass
+            else:
+                content = new_content
+        if content:
+            with open(path, 'wb') as f:
+                f.write(content.encode('utf-8'))
 
-    # 移除闭合标签 可以数组，或者字符串
-    @classmethod
-    def remove_tag(self, content, tags):
-        ret = str(content)
-        if isinstance(tags, str):
-            ret = ret.replace('<%s>' % str(tags), "")
-            ret = ret.replace('</%s>' % str(tags), "")
-        elif isinstance(tags, list) == True:
-            for tag in tags:
-                ret = ret.replace('<%s>' % tag, "")
-                ret = ret.replace('</%s>' % tag, "")
-        return ret
+    @staticmethod
+    def appendContent(path, content):
+        reCotnent = GMFileManger.readContent(path)
+        reCotnent += (("" if (len(reCotnent) == 0) else "\r\r") + content)
+        GMFileManger.replaceContent(path, reCotnent)
 
-    # 移除html符号
-    @classmethod
-    def remove_escape_character(self,
-                                content,
-                                include_garbage_character: bool = False):
-        ret = str(content)
-        pat = re.compile(r"&#.+?;")
-        search_ret = re.findall(pat, ret)
-        if search_ret != None:
-            for b in search_ret:
-                ret = ret.replace(b, "")
-        if include_garbage_character == True:
-            ret = self.remove_garbage_character(content)
 
-        return ret
+class GMDownloadCache():
+    pass
 
-    # 移除空格换行等符号
-    @classmethod
-    def remove_garbage_character(self, content: str):
-        char_sys = ['\n', '<br>']
-        # for s in char_sys:
-        #     content = replace(content,
-        #                       re.compile(r'%s+' % (s)).findall(content), s)
-        return self.replace(content, char_sys + ["　", " ", "\xa0"], "")
+
+if __name__ == "__main__":
+
+    g = GMJson()
+    # g.json_string = 123
+
+    # gx = GMJson()
+    # gx.model = g
+
+    # json_g = GMJson()
+    # json_g.model = gx
+    print("json转化失败  -------  \n object- %s  \n string- %s \n json - %s" %
+          (g, {
+              "123": "2"
+          }, ["s"]))
+
+    # try:
+    #     vars("123")
+    # except BaseException:
+    #     print("sadf")
+    # else:
+    #     print("pass")
+    # s = 0
+    # try:
+    #     result = 20 / int(s)
+    #     print('20除以%s的结果是: %g' % (s, result))
+    # except ValueError:
+    #     print('值错误，您必须输入数值')
+    # except ArithmeticError:
+    #     print('算术错误，您不能输入0')
+    # else:
+    #     print('没有出现异常')
+    # print("程序继续运行")

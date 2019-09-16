@@ -41,7 +41,7 @@ class GMHTTP(object):
         #     cert_reqs='CERT_REQUIRED',
         #     ca_certs=certifi.where())
         new_fields = fields
-        if fields != None and fields_encoding != None:
+        if fields and fields_encoding:
             paramsStr = parse.urlencode(fields, encoding=fields_encoding)
             url = url + "?" + paramsStr
             new_fields = None

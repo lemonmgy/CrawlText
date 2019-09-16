@@ -6,3 +6,4 @@
 # from .models import GMModuleBook
 from .models import *
 from .gm_download_request import *
+from .gm_data_source import GMDataSource

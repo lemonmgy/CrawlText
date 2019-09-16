@@ -6,32 +6,21 @@
 
 from pyquery import PyQuery
 import re
-import json
 
-from ..tool import GMHTTP, GMTool
+from ..tool import GMHTTP, GMString, GMJson
 from ..model import GMBookInfo, GMModuleBook, GMBookChapter, GMResponse
 
 
-class GMCrawlWebDataManger(object):
+class GMCrawlWebDataManger():
 
     # 原始数据， json字符串， json数据
     @classmethod
-    def return_data_deal(self, o_data):
-        json_ret = {}
-        json_str = ""
-        try:
-            json_str = GMTool.obj_to_json(o_data)
-            json_ret = json.loads(json_str)
-        except:
-            print("json转化失败")
-        else:
-            print("json转化成功")
-
-        return o_data, json_str, json_ret
+    def return_data_deal(cls, o_data):
+        return GMJson.dumps(o_data)
 
     # 小说网站首页
     @classmethod
-    def getHomePageData(self):
+    def getHomePageData(cls):
         response = GMHTTP.requestBQYHTML(GMHTTP.bqy_host)
 
         # pat = re.compile(r"hotcontent\">")
@@ -39,7 +28,8 @@ class GMCrawlWebDataManger(object):
         # #表示查询的id .为class .items()会是一个生成器
         p = PyQuery(response.data)
 
-        # <img src="https://www.biquyun.com/files/article/image/14/14055/14055s.jpg"/>
+        # <img src="https://www.biquyun.com
+        # /files/article/image/14/14055/14055s.jpg"/>
         # a.attr('src') 拿到 src对应的url
 
         # 热门小说
@@ -58,7 +48,7 @@ class GMCrawlWebDataManger(object):
             book.author = str(item('dl dt span').text())
 
             # <dd>药不成丹只是毒，人不成神终成灰。&#13;</dd>
-            book.des = GMTool.remove_escape_character(
+            book.des = GMString.remove_escape_character(
                 str(item('dl dd').text()), True)
 
             hot_content.append(book)
@@ -90,10 +80,10 @@ class GMCrawlWebDataManger(object):
 
                 pat = re.compile(r'</a>.+?</li>')
                 search_ret = re.search(pat, str(li))
-                if search_ret != None:
-                    ret = GMTool.remove_tag(
+                if not search_ret:
+                    ret = GMString.remove_tag(
                         str(search_ret.group()), ['a', 'li'])
-                    li_book.author = GMTool.replace(ret, ["/", " "], "")
+                    li_book.author = GMString.replace(ret, ["/", " "], "")
 
                 module_book.book_list.append(li_book)
 
@@ -141,23 +131,23 @@ class GMCrawlWebDataManger(object):
             "new_module": new_module,
             "week_module": week_module
         }
-        return self.return_data_deal(json_dic)
+        return cls.return_data_deal(json_dic)
 
     # 小说列表页面
     @classmethod
-    def getNovelListData(self, url: str = "", book_id: str = ""):
-        if url == None or len(url) == 0:
-            if book_id == None or len(book_id) == 0:
-                return None
-            else:
-                url = GMHTTP.appen_bqy_host(book_id + "/")
+    def getNovelListData(cls, url: str = "", book_id: str = ""):
+        if not url and book_id:
+            url = GMHTTP.appen_bqy_host(book_id + "/")
+        if not url:
+            return GMJson
+
         response = GMHTTP.requestBQYHTML(url)
         p = PyQuery(response.data)
         book = GMBookInfo()
         book.url = url
         box_con_sidebar = p('.box_con #sidebar')
         img = box_con_sidebar('img').attr('src')
-        if img == None:
+        if not img:
             img = box_con_sidebar('img').attr('onerror')
             pat = re.compile(r'/.*?.jpg')
             img = str(re.search(pat, img).group())
@@ -173,9 +163,9 @@ class GMCrawlWebDataManger(object):
         info_p = info('p').items()
 
         def book_info_split(info_content: str):
-            if isinstance(info_content, str) == False:
+            if not isinstance(info_content, str):
                 return info_content
-            info_content = GMTool.remove_escape_character(info_content, True)
+            info_content = GMString.remove_escape_character(info_content, True)
             content_split = info_content.split('：')
             return info_content if (
                 len(content_split) <= 0) else content_split[-1]
@@ -204,21 +194,18 @@ class GMCrawlWebDataManger(object):
             chapter.url = GMHTTP.appen_url(url, ele_dd('a').attr('href'))
             chapter_list.append(chapter)
 
-        return self.return_data_deal(book)
+        return cls.return_data_deal(book)
 
     @classmethod
-    def getNovelContentData(self,
+    def getNovelContentData(cls,
                             url: str = "",
                             book_id: str = "",
                             chapter_id: str = ""):
 
-        if url == None or len(url) == 0:
-            if book_id != None and chapter_id != None and len(
-                    book_id) > 0 and len(chapter_id) > 0:
-                url = GMHTTP.appen_bqy_host(book_id + "/" + chapter_id +
-                                            ".html")
-            else:
-                return ""
+        if not url and book_id and chapter_id:
+            url = GMHTTP.appen_bqy_host(book_id + "/" + chapter_id + ".html")
+        if not url:
+            return GMJson()
 
         response = GMHTTP.requestBQYHTML(url)
         p = PyQuery(response.data)
@@ -237,22 +224,18 @@ class GMCrawlWebDataManger(object):
             chapter.suf_url = GMHTTP.appen_bqy_host(chapter_urls[-1])
 
         book_content = box_con('div #content').text()
-        chapter.content = GMTool.remove_escape_character(book_content, True)
-        return self.return_data_deal(chapter)
+        chapter.content = GMString.remove_escape_character(book_content, True)
+        return cls.return_data_deal(chapter)
 
     @classmethod
-    def searchNovelData(self, name):
-        # 请求搜索html https://www.biquyun.com/modules/article/soshu.php?searchkey=+%B4%D3%C1%E3%BF%AA%CA%BC
+    def searchNovelData(cls, name):
+        # 请求搜索html https://www.biquyun.com/# modules/article/soshu.php?
+        # searchkey=+%B4%D3%C1%E3%BF%AA%CA%BC
         response = GMHTTP.requestBQYHTML(
             GMHTTP.appen_bqy_host('modules/article/soshu.php'),
             {"searchkey": name})
-        # print(response.data)
-        # print(response)
-        print(
-            "\n\n\n\n\n ------------------------------------------------------------------------------ \n\n\n\n\n\n"
-        )
 
-        book_list = self.deal_search_novel_result_page(response)
+        book_list = cls.deal_search_novel_result_page(response)
 
         if len(book_list) <= 0:
             pat = re.compile(r'format=xhtml;.*?"/>')
@@ -267,10 +250,10 @@ class GMCrawlWebDataManger(object):
                     book.url = GMHTTP.appen_bqy_host(url[0] + "/")
                     book_list = [book]
 
-        return self.return_data_deal(book_list)
+        return cls.return_data_deal(book_list)
 
     @classmethod
-    def deal_search_novel_result_page(self, response: GMResponse):
+    def deal_search_novel_result_page(cls, response: GMResponse):
         p = PyQuery(response.data)
         tbody = p('#main #content .grid #nr').items()
 
