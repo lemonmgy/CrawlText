@@ -7,8 +7,10 @@
 from pyquery import PyQuery
 import re
 
-from ..tool import GMHTTP, GMString, GMJson
+from ..tool import GMHTTP, GMString, GMJson, GMDownloadCache
 from ..model import GMBookInfo, GMModuleBook, GMBookChapter, GMResponse
+from ..model import GMListboxMenuModel, GMListboxListModel
+from gmhelper import GMValue
 
 
 class GMCrawlWebDataManger():
@@ -276,3 +278,20 @@ class GMCrawlWebDataManger():
             tds = ele('td').items()
             book_list.append(create_book(tds))
         return book_list
+
+    @classmethod
+    def get_download_cache_data(cls):
+        all_info = GMDownloadCache.all_list_info()
+        return all_info
+        # if all_info:
+        #     data_list = []
+        #     for ele_dic in all_info:
+        #         box_list_model = GMListboxListModel()
+        #         box_list_model.title = GMValue.value(ele_dic,
+        #                                              "name") + "_准备下载..."
+        #         box_list_model.data = ele_dic
+        #         data_list.append(box_list_model)
+
+        #     menu_model = GMListboxMenuModel(data_list)
+        #     return menu_model
+        # return None

@@ -64,20 +64,25 @@ class GMDownloadResponse(object):
 
         super().__init__(*args, **kwargs)
 
-    def call(self, code: GMDownloadStatus = None, msg: str = None, data=None):
-        if msg:
-            print("msg：" + msg)
-        elif self.msg:
-            print("msg：" + self.msg)
-        else:
-            print("msg: nonono")
+    def set_params(self, code: GMDownloadStatus, msg: str, data=None):
+        print("msg：" + str(msg))
+        self.code = code
+        self.msg = self.hidden_msg(msg, add=False)
+        self.data = data
+        return self
+
+    def call(self):
         if self.__call_back:
-            if code:
-                self.code = code
-            if not self.code:
-                self.code = GMDownloadStatus.download_error
-            if msg:
-                self.msg = msg
-            if data:
-                self.data = data
             self.__call_back(self)
+        return self
+
+    @staticmethod
+    def hidden_msg(msg="", add_msg="", add=True):
+        sy = "<add_hidden_msg>"
+        if add:
+            msg = msg + sy + add_msg
+            return msg
+        else:
+            if sy in msg:
+                return msg.split(sy)[0]
+            return msg

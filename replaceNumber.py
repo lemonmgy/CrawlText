@@ -70,49 +70,70 @@
 # from tkinter import *
 # from tkinter import ttk
 
+# def test(*value):
+#     print(value)
 
-def test(*value):
-    print(value)
+# class GMModels(object):
+#     list_xx: [] = None
+#     name = "123"
 
+#     def __getattribute__(self, name):
+#         # print("sadf")
+#         # if name == "list_xx":
+#         #     print("222")
 
-class GMModels(object):
-    list_xx: [] = None
-    name = "123"
+#         return super().__getattribute__(name)
 
-    def __getattribute__(self, name):
-        # print("sadf")
-        # if name == "list_xx":
-        #     print("222")
+# from tkinter.constants import *
 
-        return super().__getattribute__(name)
+# def action(index):
+#     print(str(index))
 
+# import threading
+# import time
+# import queue
 
-if __name__ == "__main__":
-    # # re_ret = re.search("第.+?章", "第1a123123章 望气第1a1231222223章 望气")
-    # # print(re_ret)
+# def product(bq):
+#     str_tuple = ("Python", "Kotlin", "Swift")
+#     for i in range(99999):
+#         print(threading.current_thread().name + "生产者准备生产元组元素！")
+#         # 尝试放入元素，如果队列已满，则线程被阻塞
+#         bq.put(str_tuple[i % 3])
+#         print(threading.current_thread().name \
+#             + "生产者生产元组元素完成！")
 
-    # mo = GMModels()
-    # mo.name = "xxx"
-    # mo.list_xx = ["as", "22"]
-    # # print(mo.list_xx)
+# def consume(bq):
+#     while True:
+#         time.sleep(15)
+#         # 尝试取出元素，如果队列已空，则线程被阻塞
+#         t = bq.get()
+#         # print(threading.current_thread().name + "消费者准备消费元组元素！")
 
-    # for (key, value) in vars(mo).items():
-    #     print(key, "-----", value)
+#         # print(threading.current_thread().name \
+#         #     + "消费者消费[ %s ]元素完成！" % t)
 
-    # # top = Tk()
-    # # btn = Button(top, text="几十个按钮")
-    # # btn.pack()
+# # 创建一个容量为1的Queue
+# bq = queue.Queue(maxsize=1)
+# # 启动3个生产者线程
+# threading.Thread(target=product, args=(bq, )).start()
+# threading.Thread(target=product, args=(bq, )).start()
+# threading.Thread(target=product, args=(bq, )).start()
+# # 启动一个消费者线程
+# threading.Thread(target=consume, args=(bq, )).start()
 
-    # sss = ttk.OptionMenu(top, StringVar())
-    # sss.pack()
-    # value222 = ("1", "2", "3")
-    # print(*value222)
-    # sss.set_menu("", *value222)
+import urllib3
+import certifi
 
-    # top.mainloop()
+from urllib3.response import HTTPResponse
 
-    stringss = ["s"]
-    if stringss:
-        print("sfd")
-    else:
-        print("22")
+h = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+
+h = urllib3.PoolManager()
+
+b = "https://www.biquyun.com"
+# b = "http://www.douban.com"
+rs: HTTPResponse = h.request('GET', b)
+
+print("typepepeepep = = ")
+print(type(rs))
+print("typepepeepep = = ")

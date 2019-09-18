@@ -5,28 +5,8 @@ import tkinter as tk
 # from tkinter.constants import *
 from tkinter import ttk
 from ..tool import GMKey
-
-
-# 列表中展示数据模型
-class GMListboxListModel(object):
-    # 展示的标题
-    title: str = ""
-    # 原来的数据源
-    data = None
-
-
-# 选项数据源
-class GMListboxMenuModel(object):
-    # 选项标题
-    menu_title = ""
-    # 列表展示的数据源 GMListboxListModel
-    list_box_datas: list = None
-
-    def __init__(self, data: list = None, *args, **kwargs):
-        self.list_box_datas = []
-        if data:
-            self.list_box_datas.extend(data)
-        super().__init__(*args, **kwargs)
+import tkinter.constants as tk_cons
+from ..model import GMListboxMenuModel, GMListboxListModel
 
 
 class GMListbox(object):
@@ -67,6 +47,9 @@ class GMListbox(object):
         pady=amount - add padding in y direction
         side=TOP or BOTTOM or LEFT or RIGHT -  where to add this widget.
         """
+        if 'padx' not in kw:
+            # print(kw['padx'])
+            kw['padx'] = '20'
         self.back_frame.pack(cnf=cnf, **kw)
         return self
 
@@ -114,7 +97,7 @@ class GMListbox(object):
 
         self.gm_list_box = tk.Listbox(
             self.back_frame, listvariable=self.gm_list_box_contents)
-        self.gm_list_box.pack()
+        self.gm_list_box.pack(fill=tk_cons.X)
         self.gm_list_box.bind("<ButtonRelease-1>", self.item_click)
         super().__init__(*args, **kwargs)
 

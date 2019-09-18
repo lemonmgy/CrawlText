@@ -5,6 +5,7 @@
 # import certifi
 
 import urllib3
+import certifi
 from urllib import parse
 from ..model import GMResponse
 
@@ -47,6 +48,8 @@ class GMHTTP(object):
             new_fields = None
 
         http = urllib3.PoolManager()
+        # (cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+
         response = http.request('GET', url, new_fields, headers)
 
         gm_r = GMResponse()
