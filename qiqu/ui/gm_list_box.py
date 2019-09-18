@@ -4,9 +4,9 @@
 import tkinter as tk
 # from tkinter.constants import *
 from tkinter import ttk
-from ..tool import GMKey
+from ..tool import GMTools
 import tkinter.constants as tk_cons
-from ..model import GMListboxMenuModel, GMListboxListModel
+from ..model import GMListboxMenuModel
 
 
 class GMListbox(object):
@@ -90,13 +90,12 @@ class GMListbox(object):
         self.top_label_title = tk.Label(
             self.top_title_view, textvariable=self.top_label_title_stringVar)
 
-        self.top_menu_title = ttk.OptionMenu(
-            self.top_title_view,
-            self.top_menu_title_stringVar,
-            command=self.menu_item_click)
+        self.top_menu_title = ttk.OptionMenu(self.top_title_view,
+                                             self.top_menu_title_stringVar,
+                                             command=self.menu_item_click)
 
-        self.gm_list_box = tk.Listbox(
-            self.back_frame, listvariable=self.gm_list_box_contents)
+        self.gm_list_box = tk.Listbox(self.back_frame,
+                                      listvariable=self.gm_list_box_contents)
         self.gm_list_box.pack(fill=tk_cons.X)
         self.gm_list_box.bind("<ButtonRelease-1>", self.item_click)
         super().__init__(*args, **kwargs)
@@ -136,8 +135,8 @@ class GMListbox(object):
         if not self.is_no_menu:
             menu_titles = []
             for menuModel in self.gm_list_box_books_data:
-                menuModel.menu_title = GMKey.key(menu_titles,
-                                                 menuModel.menu_title)
+                menuModel.menu_title = GMTools.key(menu_titles,
+                                                   menuModel.menu_title)
                 menu_titles.append(menuModel.menu_title)
             self.top_menu_title.set_menu(None, *menu_titles)
 

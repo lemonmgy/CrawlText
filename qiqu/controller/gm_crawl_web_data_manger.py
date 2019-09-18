@@ -7,10 +7,10 @@
 from pyquery import PyQuery
 import re
 
-from ..tool import GMHTTP, GMString, GMJson, GMDownloadCache
+from ..tool import GMHTTP, GMTools, GMJson, GMDownloadCache
 from ..model import GMBookInfo, GMModuleBook, GMBookChapter, GMResponse
-from ..model import GMListboxMenuModel, GMListboxListModel
-from gmhelper import GMValue
+# from ..model import GMListboxMenuModel, GMListboxListModel
+# from gmhelper import GMValue
 
 
 class GMCrawlWebDataManger():
@@ -50,7 +50,7 @@ class GMCrawlWebDataManger():
             book.author = str(item('dl dt span').text())
 
             # <dd>药不成丹只是毒，人不成神终成灰。&#13;</dd>
-            book.des = GMString.remove_escape_character(
+            book.des = GMTools.remove_escape_character(
                 str(item('dl dd').text()), True)
 
             hot_content.append(book)
@@ -83,9 +83,10 @@ class GMCrawlWebDataManger():
                 pat = re.compile(r'</a>.+?</li>')
                 search_ret = re.search(pat, str(li))
                 if not search_ret:
-                    ret = GMString.remove_tag(
-                        str(search_ret.group()), ['a', 'li'])
-                    li_book.author = GMString.replace(ret, ["/", " "], "")
+                    ret = GMTools.remove_tag(str(search_ret.group()),
+                                             ['a', 'li'])
+                    li_book.author = GMTools.multiple_replace(
+                        ret, ["/", " "], "")
 
                 module_book.book_list.append(li_book)
 
@@ -167,7 +168,7 @@ class GMCrawlWebDataManger():
         def book_info_split(info_content: str):
             if not isinstance(info_content, str):
                 return info_content
-            info_content = GMString.remove_escape_character(info_content, True)
+            info_content = GMTools.remove_escape_character(info_content, True)
             content_split = info_content.split('：')
             return info_content if (
                 len(content_split) <= 0) else content_split[-1]
@@ -226,7 +227,7 @@ class GMCrawlWebDataManger():
             chapter.suf_url = GMHTTP.appen_bqy_host(chapter_urls[-1])
 
         book_content = box_con('div #content').text()
-        chapter.content = GMString.remove_escape_character(book_content, True)
+        chapter.content = GMTools.remove_escape_character(book_content, True)
         return cls.return_data_deal(chapter)
 
     @classmethod

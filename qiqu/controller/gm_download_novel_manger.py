@@ -7,8 +7,7 @@ import re
 # from multiprocessing import Process
 
 from .gm_crawl_web_data_manger import GMCrawlWebDataManger
-from ..tool import GMJson, GMKey, GMThreading
-from ..tool import GMFileManger, GMPath, GMDownloadCache
+from ..tool import GMJson, GMTools, GMThreading, GMFileManger, GMDownloadCache
 from ..model import GMBookChapter, GMBookInfo
 from ..model import GMDownloadStatus, GMDownloadResponse
 from ..model import GMDownloadRequest
@@ -33,7 +32,8 @@ class GMDownloadNovelManger(object):
         # 创建任务唯一key
         if not request.request_id:
             request.request_id = request.book_id
-        request.request_id = GMKey.key(self.__download_map, request.request_id)
+        request.request_id = GMTools.key(self.__download_map,
+                                         request.request_id)
 
         manger = GMDownloadNovelManger()
         print("len(manger.__download_map) = " +
@@ -80,10 +80,9 @@ class GMDownloadNovelTask(object):
         """
         self.response_data = {}
         self.response = GMDownloadResponse(request, callback)
-        GMThreading.start(
-            self.__download_novel_with_list_style,
-            "download_" + request.request_id,
-            request=request)
+        GMThreading.start(self.__download_novel_with_list_style,
+                          "download_" + request.request_id,
+                          request=request)
 
     def __callback(self,
                    code=GMDownloadStatus.download_error,
@@ -132,8 +131,8 @@ class GMDownloadNovelTask(object):
             # self.response_data["author"] = bookModel.author
             # self.response_data["url"] = bookModel.url
             self.response_data["book_id"] = bookModel.book_id
-            #warning unfinished code ---
-            bookModel.chapter_list = bookModel.chapter_list[0:20]
+            # warning unfinished code ---
+            bookModel.chapter_list = bookModel.chapter_list
             index = 0
             all_count = len(bookModel.chapter_list)
 
@@ -181,7 +180,8 @@ class GMDownloadNovelTask(object):
 
                     # 创建路径
                     if len(path) <= 0:
-                        path = GMPath.downloadTempFilePath(book_name, '.txt')
+                        path = GMFileManger.downloadTempFilePath(
+                            book_name, '.txt')
                         if last_chapter_id and not is_exists_id\
                            and os.path.exists(path):
                             os.remove(path)
@@ -210,13 +210,13 @@ class GMDownloadNovelTask(object):
 
             # 下载完成
             # 下载完成移动为指导download文件夹下
-            down_file_path = GMPath.downloadFilePath(book_name, '.txt')
+            down_file_path = GMFileManger.downloadFilePath(book_name, '.txt')
 
             if os.path.exists(down_file_path):
                 os.remove(down_file_path)
 
             if os.path.exists(path):
-                shutil.move(path, GMPath.downloadFilePath())
+                shutil.move(path, GMFileManger.downloadFilePath())
             else:
                 print("下载文件不存在 移动到对应位置 失败")
 

@@ -5,10 +5,10 @@ import tkinter as tk
 import tkinter.messagebox as tkMessage
 import tkinter.constants as tk_cons
 
-from .gm_list_box import GMListbox, GMListboxMenuModel, GMListboxListModel
+from .gm_list_box import GMListbox
 from ..model import GMModuleBook, GMBookInfo
 from ..model import GMDownloadRequest, GMDownloadResponse, GMDownloadStatus
-from ..model import GMDataSource
+from ..model import GMDataSource, GMListboxMenuModel, GMListboxListModel
 from ..controller import GMCrawlWebDataManger, GMDownloadNovelManger
 from gmhelper import GMValue
 from ..tool import GMThreading
@@ -70,18 +70,18 @@ class GMHomeFrame(tk.Frame):
 
         self.__serach_text_content = tk.StringVar()
         self.__serach_text_content.set(("诸天至尊"))
-        serach_entry = tk.Entry(
-            search_frame, textvariable=self.__serach_text_content)
-        serach_entry.pack(
-            side=tk_cons.LEFT, fill=tk_cons.X, expand=tk_cons.YES)
+        serach_entry = tk.Entry(search_frame,
+                                textvariable=self.__serach_text_content)
+        serach_entry.pack(side=tk_cons.LEFT,
+                          fill=tk_cons.X,
+                          expand=tk_cons.YES)
 
         self.__serach_btn_content = tk.StringVar()
         self.__serach_btn_content.set(("搜索"))
-        search_btn = tk.Button(
-            search_frame,
-            command=self.start_search_text_cation,
-            textvariable=self.__serach_btn_content,
-            width=8)
+        search_btn = tk.Button(search_frame,
+                               command=self.start_search_text_cation,
+                               textvariable=self.__serach_btn_content,
+                               width=8)
         search_btn.pack(side=tk_cons.RIGHT)
 
         self.__week_gm_list_box = GMListbox(
@@ -89,8 +89,9 @@ class GMHomeFrame(tk.Frame):
 
     # 下载列表
     def __create_download_view(self):
-        down_load_btn = tk.Button(
-            self, text="开始下载", command=self.downlaod_click)
+        down_load_btn = tk.Button(self,
+                                  text="开始下载",
+                                  command=self.downlaod_click)
         down_load_btn.pack(ipadx=30)
         self.__novel_chapter_gm_list_box = GMListbox(self).pack(
             fill=tk_cons.X, expand=tk_cons.YES).setTopTitle("下载列表")

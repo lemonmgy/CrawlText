@@ -5,7 +5,7 @@
 # import certifi
 
 import urllib3
-import certifi
+# import certifi
 from urllib import parse
 from ..model import GMResponse
 
@@ -15,7 +15,7 @@ class GMHTTP(object):
     def appen_url(self, pre_url: str = "", last_url: str = ""):
         if last_url.startswith('/'):
             last_url = last_url.lstrip('/')
-        if pre_url.endswith('/') == False:
+        if not pre_url.endswith('/'):
             pre_url = pre_url + '/'
         return pre_url + last_url
 
@@ -30,9 +30,13 @@ class GMHTTP(object):
     @classmethod
     def default_bqy_header(self):
         return GMHTTP.get_header(
-            '__jsluid=a87f8c0b2f2754d4c0141e24162de96f; __cfduid=deea3a0da494f89c8bc097a1c2f3f434f1546590946; __jsl_clearance=1546864195.542|0|u9Ao5aXiIuvxPoeCUTK%2FKpUVhXg%3D',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36'
-        )
+            '__jsluid=a87f8c0b2f2754d4c0141e24162de96f; \
+             __cfduid=deea3a0da494f89c8bc097a1c2f3f434f1546590946; \
+             __jsl_clearance=1546864195.542\
+             |0|u9Ao5aXiIuvxPoeCUTK%2FKpUVhXg%3D',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_2) \
+             AppleWebKit/537.36 (KHTML, like Gecko) \
+            Chrome/71.0.3578.98 Safari/537.36')
 
     @classmethod
     def get(self, url, fields=None, headers=None, fields_encoding=None):

@@ -56,9 +56,8 @@ class GMValue(object):
             elif ":" in key:
                 sub_key = key.split(":", 1)
                 first_key = sub_key[0]
-                getValue(
-                    deal_ret_value(obtainValue(dic, first_key), dict),
-                    sub_key[-1])
+                getValue(deal_ret_value(obtainValue(dic, first_key), dict),
+                         sub_key[-1])
             else:
                 ret_list.append(
                     deal_ret_value(obtainValue(dic, key), value_type))

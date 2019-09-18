@@ -10,7 +10,7 @@ class GMThreading():
     def start(target, name: str, **kwargs):
         if not name:
             name = str(datetime.datetime.now())
-        name += "threading_" + name
+        name = "threading_" + name
         t = threading.Thread(target=target, kwargs=kwargs, name=name)
         t.start()
 

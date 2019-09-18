@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-from ..tool.gm_tools import GMKey
+from ..tool import GMTools
 
 
 class GMDataSource(object):
@@ -13,7 +13,7 @@ class GMDataSource(object):
             return
 
         if not key or key in self.__data_dic:
-            key = GMKey.key(key, len(self.__data_list))
+            key = GMTools.key(key, len(self.__data_list))
 
         self.__data_list.append(ele)
         self.__data_dic[key] = ele
