@@ -2,11 +2,30 @@
 # -*- coding: utf-8 -*-
 
 import tkinter as tk
-# from tkinter.constants import *
 from tkinter import ttk
-from ..tool import GMTools
 import tkinter.constants as tk_cons
-from ..model import GMListboxMenuModel
+
+
+# 列表中展示数据模型
+class GMListboxListModel(object):
+    # 展示的标题
+    title: str = ""
+    # 原来的数据源
+    data = None
+
+
+# 选项数据源
+class GMListboxMenuModel(object):
+    # 选项标题
+    menu_title = ""
+    # 列表展示的数据源 GMListboxListModel
+    list_box_datas: list = None
+
+    def __init__(self, data: list = None, *args, **kwargs):
+        self.list_box_datas = []
+        if data:
+            self.list_box_datas.extend(data)
+        super().__init__(*args, **kwargs)
 
 
 class GMListbox(object):
@@ -54,6 +73,8 @@ class GMListbox(object):
         return self
 
     def select_item_change(self):
+        if not self.selected_model:
+            return
         index = self.gm_list_box.curselection()
         book = None
         if len(index) > 0:
@@ -62,8 +83,6 @@ class GMListbox(object):
                 book = self.selected_model.list_box_datas[index]
         if self.item_click_callback:
             self.item_click_callback(book)
-
-        print("indexindex === " + str(index))
 
     def item_click(self, event):
         self.select_item_change()
@@ -135,15 +154,36 @@ class GMListbox(object):
         if not self.is_no_menu:
             menu_titles = []
             for menuModel in self.gm_list_box_books_data:
-                menuModel.menu_title = GMTools.key(menu_titles,
-                                                   menuModel.menu_title)
+                menuModel.menu_title = self.menu_title_key(
+                    menu_titles, menuModel.menu_title)
                 menu_titles.append(menuModel.menu_title)
             self.top_menu_title.set_menu(None, *menu_titles)
 
         self.__update_selected_model(select_model)
 
+    def menu_title_key(self, data, defaultKey: str, addkey: str = None):
+        """
+        将 数组、元组的元素 or 字典的key 处理为唯一值，
+        默认key  addkey后面追加的key
+        """
+        def __key(data, defaultKey, addkey):
+            if defaultKey in data:
+                defaultKey = ("" if len(defaultKey) == 0 else
+                              (defaultKey + "_")) + addkey
+                return __key(data, defaultKey, addkey)
+            else:
+                return defaultKey
+
+        # 判断data是否满足条件
+        if not isinstance(data, list) and not isinstance(
+                data, tuple) and not isinstance(data, dict):
+            return defaultKey
+
+        if not isinstance(addkey, str) or len(addkey) == 0:
+            addkey = "0"
+        return __key(data, defaultKey, addkey)
+
     def __update_selected_model(self, selectedModel=None):
-        print(selectedModel)
         self.selected_model = selectedModel
         if self.selected_model:
             if not self.is_no_menu:

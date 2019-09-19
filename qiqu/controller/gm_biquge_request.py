@@ -4,16 +4,16 @@
 # p = PyQuery(html)
 # p("#nr .odd a"))  # 是查找id的标签  .是查找class 的标签  link 是查找link 标签 中间的空格表示里层
 
-from pyquery import PyQuery
 import re
+from pyquery import PyQuery
 
-from ..tool import GMHTTP, GMTools, GMJson, GMDownloadCache
-from ..model import GMBookInfo, GMModuleBook, GMBookChapter, GMResponse
-# from ..model import GMListboxMenuModel, GMListboxListModel
-# from gmhelper import GMValue
+from ..model import GMBookInfo, GMModuleBook, GMBookChapter
+
+from gmhelper import GMResponse, GMJson
+from ..tools import GMDownloadCache, GMHtmlString, GMNovelHttp
 
 
-class GMCrawlWebDataManger():
+class GMBiqugeRequest():
 
     # 原始数据， json字符串， json数据
     @classmethod
@@ -23,7 +23,7 @@ class GMCrawlWebDataManger():
     # 小说网站首页
     @classmethod
     def getHomePageData(cls):
-        response = GMHTTP.requestBQYHTML(GMHTTP.bqy_host)
+        response = GMNovelHttp.requestBQYHTML(GMNovelHttp.bqg_host)
 
         # pat = re.compile(r"hotcontent\">")
         # ret = re.search(pat, )
@@ -44,13 +44,13 @@ class GMCrawlWebDataManger():
             book.name = img_item.attr('alt')
             book.img = img_item.attr('src')
             # 跳转链接
-            book.url = item('.image a').attr('href')
+            book.url_with_book_id(item('.image a').attr('href'))
 
             # 作者 <span>风凌天下</span>
             book.author = str(item('dl dt span').text())
 
             # <dd>药不成丹只是毒，人不成神终成灰。&#13;</dd>
-            book.des = GMTools.remove_escape_character(
+            book.des = GMHtmlString.remove_escape_character(
                 str(item('dl dd').text()), True)
 
             hot_content.append(book)
@@ -67,7 +67,7 @@ class GMCrawlWebDataManger():
             top = content('.top')
             top_book = GMBookInfo()
             top_book.img = top('.image img').attr('src')
-            top_book.url = top('dl dt a').attr('href')
+            top_book.url_with_book_id(top('dl dt a').attr('href'))
             top_book.name = top('dl dt a').text()
             top_book.des = top('dl dd').text()
 
@@ -77,16 +77,17 @@ class GMCrawlWebDataManger():
             for li in ul_li:
                 li_book = GMBookInfo()
                 li_book.book_type = module_book.book_category_des
-                li_book.url = li('a').attr('href')
+                li_book.url_with_book_id(li('a').attr('href'))
                 li_book.name = li('a').text()
 
                 pat = re.compile(r'</a>.+?</li>')
                 search_ret = re.search(pat, str(li))
                 if not search_ret:
-                    ret = GMTools.remove_tag(str(search_ret.group()),
-                                             ['a', 'li'])
-                    li_book.author = GMTools.multiple_replace(
-                        ret, ["/", " "], "")
+                    ret = GMHtmlString.remove_tag(str(search_ret.group()),
+                                                  ['a', 'li'])
+                    for e in ["/", " "]:
+                        ret = ret.replace(e, "")
+                    li_book.author = ret
 
                 module_book.book_list.append(li_book)
 
@@ -103,14 +104,15 @@ class GMCrawlWebDataManger():
             book = GMBookInfo()
             s2_a = ele_li('.s2 a')
             book.name = s2_a.text()
-            book.url = s2_a.attr('href')
+            book.url_with_book_id(s2_a.attr('href'))
             book.book_type = ele_li('.s1').text()
             s3_a = ele_li('.s3 a')
             book.author = ele_li('.s4').text()
 
             book.new_chapter = GMBookChapter()
             book.new_chapter.title = s3_a.text()
-            book.new_chapter.url = GMHTTP.appen_bqy_host(s3_a.attr('href'))
+            book.new_chapter.url_with_chapter_id(s3_a.attr('href'),
+                                                 book.book_url)
             book.new_chapter.date = ele_li('.s5').text()
 
             new_module.book_list.append(book)
@@ -123,7 +125,7 @@ class GMCrawlWebDataManger():
         for ele_li in week_ul_li:
             book = GMBookInfo()
             book.name = ele_li('.s2 a').text()
-            book.url = ele_li('.s2 a').attr('href')
+            book.url_with_book_id(ele_li('.s2 a').attr('href'))
             book.book_type = ele_li('.s1').text()
             book.author = ele_li('.s5').text()
             week_module.book_list.append(book)
@@ -138,23 +140,20 @@ class GMCrawlWebDataManger():
 
     # 小说列表页面
     @classmethod
-    def getNovelListData(cls, url: str = "", book_id: str = ""):
-        if not url and book_id:
-            url = GMHTTP.appen_bqy_host(book_id + "/")
-        if not url:
+    def getNovelListData(cls, book_url: str = ""):
+        if not book_url:
             return GMJson
-
-        response = GMHTTP.requestBQYHTML(url)
+        response = GMNovelHttp.requestBQYHTML(book_url)
         p = PyQuery(response.data)
         book = GMBookInfo()
-        book.url = url
+        book.url_with_book_id(book_url)
         box_con_sidebar = p('.box_con #sidebar')
         img = box_con_sidebar('img').attr('src')
         if not img:
             img = box_con_sidebar('img').attr('onerror')
             pat = re.compile(r'/.*?.jpg')
             img = str(re.search(pat, img).group())
-        book.img = GMHTTP.appen_bqy_host(img)
+        book.img = GMNovelHttp.append_bqg_host(img)
 
         box_con_maininfo = p('.box_con #maininfo')
         book.des = box_con_maininfo('#intro p').text()
@@ -168,7 +167,8 @@ class GMCrawlWebDataManger():
         def book_info_split(info_content: str):
             if not isinstance(info_content, str):
                 return info_content
-            info_content = GMTools.remove_escape_character(info_content, True)
+            info_content = GMHtmlString.remove_escape_character(
+                info_content, True)
             content_split = info_content.split('：')
             return info_content if (
                 len(content_split) <= 0) else content_split[-1]
@@ -181,9 +181,8 @@ class GMCrawlWebDataManger():
                 book.new_chapter.date = book_info_split(ele_p.text())
             elif i == 3:
                 book.new_chapter.title = ele_p('a').text()
-                book.new_chapter.url = GMHTTP.appen_url(
-                    url,
-                    ele_p('a').attr('href'))
+                book.new_chapter.url_with_chapter_id(
+                    ele_p('a').attr('href'), book.book_url)
             else:
                 pass
             i += 1
@@ -194,91 +193,80 @@ class GMCrawlWebDataManger():
         for ele_dd in box_con_list_dl_dd:
             chapter = GMBookChapter()
             chapter.title = ele_dd('a').text()
-            chapter.url = GMHTTP.appen_url(url, ele_dd('a').attr('href'))
+            c_url = ele_dd('a').attr('href')
+            chapter.url_with_chapter_id(c_url, book.book_url)
             chapter_list.append(chapter)
 
         return cls.return_data_deal(book)
 
     @classmethod
-    def getNovelContentData(cls,
-                            url: str = "",
-                            book_id: str = "",
-                            chapter_id: str = ""):
-
-        if not url and book_id and chapter_id:
-            url = GMHTTP.appen_bqy_host(book_id + "/" + chapter_id + ".html")
-        if not url:
-            return GMJson()
-
-        response = GMHTTP.requestBQYHTML(url)
+    def getNovelContentData(cls, chapter_url):
+        response = GMNovelHttp.requestBQYHTML(chapter_url)
         p = PyQuery(response.data)
         box_con = p('.content_read .box_con')
         bookname = box_con('.bookname')
 
         chapter = GMBookChapter()
-        chapter.url = url
-        chapter.title = bookname('h1').text()
-        bottem1 = bookname('.bottem1 a')
-
-        pat = re.compile(r'/[0-9]*_[0-9]+/[0-9]+.html|/[0-9]*_[0-9]+/')
-        chapter_urls = pat.findall(str(bottem1))
-        if len(chapter_urls) >= 3:
-            chapter.pre_url = GMHTTP.appen_bqy_host(chapter_urls[0])
-            chapter.suf_url = GMHTTP.appen_bqy_host(chapter_urls[-1])
+        chapter.url_with_chapter_id(chapter_url)
+        chapter.chapter_title = bookname('h1').text()
 
         book_content = box_con('div #content').text()
-        chapter.content = GMTools.remove_escape_character(book_content, True)
+        chapter.content = GMHtmlString.remove_escape_character(
+            book_content, True)
         return cls.return_data_deal(chapter)
 
     @classmethod
     def searchNovelData(cls, name):
         # 请求搜索html https://www.biquyun.com/# modules/article/soshu.php?
         # searchkey=+%B4%D3%C1%E3%BF%AA%CA%BC
-        response = GMHTTP.requestBQYHTML(
-            GMHTTP.appen_bqy_host('modules/article/soshu.php'),
-            {"searchkey": name})
 
-        book_list = cls.deal_search_novel_result_page(response)
+        def multiple_search_result_data(response: GMResponse):
+            p = PyQuery(response.data)
+            tbody = p('#main #content .grid #nr').items()
 
-        if len(book_list) <= 0:
+            def create_book(tds: list):
+                tds = list(tds)
+                book = GMBookInfo()
+                book.name = tds[0]('a').text()
+                book.url_with_book_id(tds[0]('a').attr('href'))
+                book.author = tds[2].text()
+                book.new_chapter = GMBookChapter()
+                book.new_chapter.url_with_chapter_id(tds[1]('a').attr('href'),
+                                                     book.book_url)
+                book.new_chapter.title = tds[1].text()
+                book.new_chapter.date = tds[4].text()
+                return book
+
+            book_list = []
+
+            for ele in tbody:
+                tds = ele('td').items()
+                book_list.append(create_book(tds))
+            return book_list
+
+        def a_search_result_data(response: GMResponse):
             pat = re.compile(r'format=xhtml;.*?"/>')
             pat_ret = pat.findall(str(response.data))
-            if len(pat_ret) > 0:
+            if pat_ret:
                 url = pat_ret[0]
-                pat = re.compile(r'[0-9]+_[0-9]+')
-                url = pat.findall(str(url))
-                if len(url) > 0:
+                # format=xhtml; url=https://m.biquge.cm/8/8453/
+                # pat = re.compile(r'[0-9]+/[0-9]+')
+                if url:
                     book = GMBookInfo()
                     book.name = name
-                    book.url = GMHTTP.appen_bqy_host(url[0] + "/")
-                    book_list = [book]
+                    book.url_with_book_id(str(url))
+                    return [book]
+            return []
 
+        response = GMNovelHttp.requestBQYHTML(GMNovelHttp.bqg_search_url,
+                                              {"searchkey": name})
+        book_list = multiple_search_result_data(response)
+
+        if not book_list:
+            book_list = a_search_result_data(response)
+        if not book_list:
+            book_list = []
         return cls.return_data_deal(book_list)
-
-    @classmethod
-    def deal_search_novel_result_page(cls, response: GMResponse):
-        p = PyQuery(response.data)
-        tbody = p('#main #content .grid #nr').items()
-
-        def create_book(tds: list):
-            tds = list(tds)
-            book = GMBookInfo()
-            book.name = tds[0]('a').text()
-            book.url = tds[0]('a').attr('href')
-            book.author = tds[2].text()
-            book.new_chapter = GMBookChapter()
-            book.new_chapter.url = GMHTTP.appen_bqy_host(
-                tds[1]('a').attr('href'))
-            book.new_chapter.title = tds[1].text()
-            book.new_chapter.date = tds[4].text()
-            return book
-
-        book_list = []
-
-        for ele in tbody:
-            tds = ele('td').items()
-            book_list.append(create_book(tds))
-        return book_list
 
     @classmethod
     def get_download_cache_data(cls):

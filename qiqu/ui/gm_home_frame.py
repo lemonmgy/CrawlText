@@ -5,13 +5,15 @@ import tkinter as tk
 import tkinter.messagebox as tkMessage
 import tkinter.constants as tk_cons
 
-from .gm_list_box import GMListbox
+from .gm_list_box import GMListbox, GMListboxMenuModel, GMListboxListModel
+
 from ..model import GMModuleBook, GMBookInfo
 from ..model import GMDownloadRequest, GMDownloadResponse, GMDownloadStatus
-from ..model import GMDataSource, GMListboxMenuModel, GMListboxListModel
-from ..controller import GMCrawlWebDataManger, GMDownloadNovelManger
-from gmhelper import GMValue
-from ..tool import GMThreading
+from ..model import GMDataSource
+
+from ..controller import GMBiqugeRequest, GMDownloadNovelManager
+
+from gmhelper import GMValue, GMThreading
 
 
 class GMHomeFrame(tk.Frame):
@@ -51,7 +53,7 @@ class GMHomeFrame(tk.Frame):
 
         home.create_subView()
         home.__get_home_data()
-        # home.__get_download_cache_data()
+        home.__get_download_cache_data()
 
     def create_subView(self):
         self.__home_data = []
@@ -97,17 +99,21 @@ class GMHomeFrame(tk.Frame):
             fill=tk_cons.X, expand=tk_cons.YES).setTopTitle("下载列表")
 
     def __get_download_cache_data(self):
-        all_info = GMCrawlWebDataManger.get_download_cache_data()
+        all_info = GMBiqugeRequest.get_download_cache_data()
         if not all_info:
             return
         for ele_dic in all_info:
-            self.__start_download(None, GMValue.value(ele_dic, "book_id"),
-                                  GMValue.value(ele_dic, "name"),
-                                  GMValue.value(ele_dic, "chapter_id"))
+            response = GMDownloadResponse(
+                GMValue.value(ele_dic, "book_url"), GMDownloadStatus.suspend,
+                GMValue.value(ele_dic, "name") + " 暂停下载...", ele_dic)
+            self.update_downloading_view(response)
+            # self.__start_download(GMValue.value(ele_dic, "book_id"),
+            #                       GMValue.value(ele_dic, "name"),
+            #                       GMValue.value(ele_dic, "chapter_id"))
 
     # 获取数据
     def __get_home_data(self):
-        data = GMCrawlWebDataManger.getHomePageData()
+        data = GMBiqugeRequest.getHomePageData()
         data_json = data.model
         if not data_json:
             tkMessage.showerror("获取数据失败")
@@ -141,8 +147,6 @@ class GMHomeFrame(tk.Frame):
         self.__home_data = show_list
         self.__update_main_list()
 
-        self.__get_download_cache_data()
-
     def __update_main_list(self, index=None):
         self.__week_gm_list_box.update_list_contetns(self.__home_data, index)
 
@@ -162,7 +166,7 @@ class GMHomeFrame(tk.Frame):
             return
 
         self.__serach_btn_content.set(("搜索中."))
-        book_list = GMCrawlWebDataManger.searchNovelData(content).model
+        book_list = GMBiqugeRequest.searchNovelData(content).model
         self.__serach_btn_content.set(("搜索"))
         if not book_list:
             tkMessage.showerror("提示", "暂无搜索结果")
@@ -185,7 +189,7 @@ class GMHomeFrame(tk.Frame):
             book = showModel.data
             if isinstance(book, GMBookInfo):
                 self.__selected_book = book
-                print("%s = %s" % (book.name, book.url))
+                print("%s = %s" % (book.name, book.book_url))
                 return
         print("__selected_book = None")
         self.__selected_book = None
@@ -195,68 +199,53 @@ class GMHomeFrame(tk.Frame):
         if not self.__selected_book:
             tkMessage.showerror("提示", "未选中书籍")
             return
-        self.__start_download(self.__selected_book.url,
-                              self.__selected_book.book_id,
+        self.__start_download(self.__selected_book.book_url,
                               self.__selected_book.name)
 
     def __start_download(self,
-                         url: str = None,
-                         book_id: str = None,
+                         book_url: str = None,
                          name: str = None,
                          chapter_id: str = None):
-
-        request = GMDownloadRequest()
-        request.url = url
-        request.book_id = book_id
-        request.extra = {}
+        extra = {}
         if chapter_id:
-            request.extra["chapter_id"] = chapter_id
+            extra["chapter_id"] = chapter_id
         if name:
-            request.extra["name"] = name
-
-        GMDownloadNovelManger.add_download_novel(request,
-                                                 self.downlaod_click_callback)
+            extra["name"] = name
+        request = GMDownloadRequest(book_url, extra,
+                                    self.downlaod_click_callback)
+        GMDownloadNovelManager.add_download_novel(request)
 
     # 下载回调
     def downlaod_click_callback(self, response: GMDownloadResponse):
-        if response.code == GMDownloadStatus.download_success:
+        if response.code == GMDownloadStatus.success:
             # 书籍下载完成
-            request_id: str = response.request.request_id
-            self.__downloading_dataSource.pop(key=request_id)
-            self.__novel_chapter_gm_list_box.update_list_contetns(None)
-            tkMessage.showinfo("提示", response.msg)
-
-        elif response.code == GMDownloadStatus.downloading_chapter:
-            data: dict = response.data
-            if not isinstance(data, dict):
-                # tkMessage.showerror("类型错误")
-                print("类型错误")
-                return
-
-            print(data)
-
-            # 章节下载成功
-            # 找出任务列表中 的showmodel
-            # 列表中下载的model
-            request_id: str = response.request.request_id
-            current_list_model: GMListboxListModel = GMValue.value(
-                self.__downloading_dataSource.dataDic(), request_id)
-
-            # current_list_model == none 时创建创建并将showmodel添加到下载列表
-            if not current_list_model:
-                current_list_model = GMListboxListModel()
-                self.__downloading_dataSource.append(current_list_model,
-                                                     request_id)
-            # 刷新数据列表中model的数据
-            current_list_model.title = response.msg
-            current_list_model.data = data
-
+            self.__downloading_dataSource.pop(response.book_url)
             menu_model = GMListboxMenuModel(
                 self.__downloading_dataSource.dataList())
             self.__novel_chapter_gm_list_box.update_list_contetns([menu_model])
+            tkMessage.showinfo("提示", response.msg)
+        elif response.code == GMDownloadStatus.downloading:
+            self.update_downloading_view(response)
         else:
             # 错误
             tkMessage.showerror("提示", response.msg)
+
+    def update_downloading_view(self, response: GMDownloadResponse):
+        # 章节下载成功
+        # 找出任务列表中 的showmodel
+        # 列表中下载的model
+        model = self.__downloading_dataSource.value(response.book_url)
+        if not model:
+            model = GMListboxListModel()
+            self.__downloading_dataSource.add(response.book_url, model)
+
+        # 刷新数据列表中model的数据
+        model.title = response.msg
+        model.data = response.data
+
+        menu_model = GMListboxMenuModel(
+            self.__downloading_dataSource.dataList())
+        self.__novel_chapter_gm_list_box.update_list_contetns([menu_model])
 
 
 if __name__ == "__main__":

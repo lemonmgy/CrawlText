@@ -1,66 +1,38 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-from ..tool import GMTools
 
-
-class GMDataSource(object):
-    __data_list = []
-    __data_dic = {}
-
-    def append(self, ele, key):
-        if ele in self.__data_list:
-            return
-
-        if not key or key in self.__data_dic:
-            key = GMTools.key(key, len(self.__data_list))
-
-        self.__data_list.append(ele)
-        self.__data_dic[key] = ele
-
-    def pop(self, ele=None, index=None, key=None):
-        if not ele:
-            if index and index >= 0 and index < len(self.__data_list):
-                ele = self.__data_list[index]
-
-        if not ele:
-            if key and key in self.__data_dic:
-                ele = self.__data_dic[key]
-        self.__remove_obj(ele)
-
-    def __remove_obj(self, ele=None):
-        if ele:
-            self.__data_list.remove(ele)
-            re_key = None
-            for key, value in self.__data_dic.items():
-                if value == ele:
-                    re_key = key
-            if re_key:
-                del self.__data_dic[re_key]
-                # self.__data_dic.pop()
+class GMDataSource():
+    __data_list: list
+    __data_dict: dict
 
     def dataList(self):
         return self.__data_list
 
-    def dataDic(self):
-        return self.__data_dic
+    def dataDict(self):
+        return self.__data_dict
 
+    def __init__(self, *args, **kwargs):
+        self.__data_list = []
+        self.__data_dict = {}
+        super().__init__(*args, **kwargs)
 
-if __name__ == "__main__":
+    def add(self, key, value):
+        if not key or not value:
+            return
+        self.__data_list.append(value)
+        self.__data_dict[key] = value
 
-    data = GMDataSource()
-    data.append("a", "2")
-    data.append("b", "3")
-    data.append("x", "4")
-    data.append("v", "4")
-    print(data.dataList())
-    print(data.dataDic())
+    def pop(self, key):
+        if not key:
+            return
+        value = None
+        if key in self.__data_dict:
+            value = self.__data_dict[key]
+        if value and value in self.__data_list:
+            self.__data_list.remove(value)
 
-    # dicss = {"a": "2", "b": "3"}
-    # if "a" in dicss:
-    #     print("123123123z")
-    # for key, value in dicss.items():
-    #     print(key, value)
-    # del dicss["b"]
-    # print(dicss.pop("a", ["s"]))
-    # print(dicss)
+    def value(self, key):
+        if key not in self.__data_dict:
+            return None
+        return self.__data_dict[key]

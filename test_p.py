@@ -123,17 +123,24 @@
 
 import urllib3
 import certifi
-
 from urllib3.response import HTTPResponse
+import os
 
-h = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+import ssl
 
+import aiohttp
+
+ssl._create_default_https_context = ssl._create_unverified_context()
+
+# h = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+
+# os.path.abspath("certs.pem")
 h = urllib3.PoolManager()
 
-b = "https://www.biquyun.com"
-# b = "http://www.douban.com"
-rs: HTTPResponse = h.request('GET', b)
+b = "http://www.baidu.com"
+b = "https://www.biquge.cm"
+rs = h.request('GET', b)
 
 print("typepepeepep = = ")
-print(type(rs))
+print(rs.data.decode('GBK'))
 print("typepepeepep = = ")

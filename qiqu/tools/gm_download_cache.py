@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-from .gm_file_manger import GMFileManger
-from .gm_json import GMJson
+# from gmhelper import GMJson, GMFileManager
+
+from gmhelper import GMJson, GMFileManager
 
 info_dict_key = "__info_dict_key"
 info_list_key = "__info_list_key"
@@ -43,8 +44,8 @@ class GMDownloadCache():
 
     @staticmethod
     def read_info():
-        info_path = GMFileManger.downloadTempFilePath('download_info.txt')
-        content = GMFileManger.readContent(info_path)
+        info_path = GMFileManager.downloadTempFilePath('download_info.txt')
+        content = GMFileManager.readContent(info_path)
 
         cache_dict: dict = None
         if content:
@@ -67,8 +68,8 @@ class GMDownloadCache():
 
     @staticmethod
     def write_info(cache_dict):
-        info_path = GMFileManger.downloadTempFilePath('download_info.txt')
-        GMFileManger.replaceContent(info_path, cache_dict)
+        info_path = GMFileManager.downloadTempFilePath('download_info.txt')
+        GMFileManager.replaceContent(info_path, cache_dict)
 
     @staticmethod
     def save(book_id: str, chapter_id: str, name: str):

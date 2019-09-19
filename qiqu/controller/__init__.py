@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-from .gm_crawl_web_data_manger import GMCrawlWebDataManger
-from .gm_download_novel_manger import GMDownloadNovelManger
+from .gm_biquge_request import GMBiqugeRequest
+from .gm_download_novel_manager import GMDownloadNovelManager

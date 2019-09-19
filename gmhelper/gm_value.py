@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-if __name__ == "__main__":
-    ret = {"2": "s", "0": "s"}
-
 
 class GMValue(object):
     @classmethod
@@ -69,12 +66,3 @@ class GMValue(object):
             return ret_list[0]
         else:
             return ret_list
-
-
-if __name__ == "__main__":
-    l = list()
-    l.append("s")
-    if l:
-        print("if")
-    else:
-        print("else")
