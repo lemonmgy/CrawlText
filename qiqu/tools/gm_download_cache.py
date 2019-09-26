@@ -16,7 +16,7 @@ class GMDownloadCache():
     msg_key = "msg_key"
 
     __download_file_path = GMFileManager.downloadTempFilePath(
-        'download_info.json')
+        '.download_info.json')
 
     @classmethod
     def save(cls, book_url: str, name: str, chapter_id: str = ""):
