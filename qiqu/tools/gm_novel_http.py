@@ -9,8 +9,8 @@ class GMNovelHttp():
     bqg_search_url = bqg_host + "/modules/article/sou.php"
 
     @classmethod
-    def requestBQYHTML(self, url, params=None):
-        response = GMHTTP.get(url, params, fields_encoding="gb2312")
+    def requestBQYHTML(self, url, params=None, log: bool = True):
+        response = GMHTTP.get(url, params, fields_encoding="gb2312", log=log)
         try:
             response.data = response.data.decode('GBK')
         finally:

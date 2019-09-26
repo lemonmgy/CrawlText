@@ -156,24 +156,24 @@ class GMHTTP(object):
     基本HTTP请求
     """
     @classmethod
-    def appen_url(self, urls: list = None):
+    def appen_url(cls, urls: list = None):
         if not list:
             return None
         url = ""
         for e in urls:
+            if not e.endswith('/') and e != urls[-1]:
+                e += '/'
             if e.startswith('/'):
                 e = e.lstrip('/')
-            if not e.endswith('/') and e == urls[-1]:
-                e += '/'
             url += e
         return url
 
     @classmethod
-    def get_header(self, cookie, user_agent):
+    def get_header(cls, cookie, user_agent):
         return {'Cookie': cookie, 'User-Agent': user_agent}
 
     @classmethod
-    def default_bqy_header(self):
+    def default_bqy_header(cls):
         return GMHTTP.get_header(
             '__jsluid=a87f8c0b2f2754d4c0141e24162de96f; \
              __cfduid=deea3a0da494f89c8bc097a1c2f3f434f1546590946; \
@@ -184,7 +184,12 @@ class GMHTTP(object):
             Chrome/71.0.3578.98 Safari/537.36')
 
     @classmethod
-    def get(self, url, fields=None, headers=None, fields_encoding=None):
+    def get(cls,
+            url,
+            fields=None,
+            headers=None,
+            fields_encoding=None,
+            log=True):
 
         # http = urllib3.PoolManager(
         #     cert_file='/path/to/your/client_cert.pem',
@@ -199,15 +204,16 @@ class GMHTTP(object):
         http = urllib3.PoolManager()
         http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED',
                                    ca_certs=certifi.where())
-
+        if log:
+            print(url + "    status = startRequest")
         response = http.request('GET', url, new_fields, headers)
 
         gm_r = GMResponse()
         gm_r.url = url
         gm_r.data = response.data
         gm_r.status = response.status
-        print(gm_r.url + "      status = " + str(gm_r.status))
-
+        if log:
+            print(url + "    status = " + str(gm_r.status))
         return gm_r
 
 
@@ -227,6 +233,7 @@ class GMImage(object):
 
 
 class GMThreading():
+    thread = None
     """
     创建线程
     """
@@ -237,6 +244,13 @@ class GMThreading():
         name = "threading_" + name
         t = threading.Thread(target=target, kwargs=kwargs, name=name)
         t.start()
+        g = GMThreading()
+        g.thread = t
+        return g
+
+    @staticmethod
+    def print_current_threading():
+        print("current_threading：", threading.currentThread())
 
 
 class GMFileManager(object):
@@ -247,7 +261,7 @@ class GMFileManager(object):
 
     @staticmethod
     def downloadTempFilePath(fileName: str = "", extension=""):
-        return GMFileManager.getFilePath('download/temp', fileName, extension)
+        return GMFileManager.getFilePath('download/.temp', fileName, extension)
 
     @staticmethod
     def getFilePath(folder, fileName: str = "", extension=""):
@@ -259,10 +273,9 @@ class GMFileManager(object):
 
         n_path = abspath
         for n in folder_paths:
-            if "." not in n:
-                n_path = os.path.join(n_path, n)
-                if not os.path.exists(n_path):
-                    os.mkdir(n_path)
+            n_path = os.path.join(n_path, n)
+            if not os.path.exists(n_path):
+                os.mkdir(n_path)
 
         if folder and len(folder) > 0:
             downloadPath = os.path.join(abspath, folder)
@@ -295,7 +308,7 @@ class GMFileManager(object):
         if isinstance(content, (list, tuple, dict)):
             new_content = None
             try:
-                new_content = json.dumps(content)
+                new_content = json.dumps(content, ensure_ascii=False)
             except BaseException:
                 pass
             else:

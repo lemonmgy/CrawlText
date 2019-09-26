@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from qiqu import GMHomeFrame
+from qiqu import GMWindowFrame
 
 if __name__ == "__main__":
-    GMHomeFrame.run()
+    GMWindowFrame.run()

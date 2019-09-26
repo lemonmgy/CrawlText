@@ -8,65 +8,40 @@ import tkinter.constants as tk_cons
 from .gm_list_box import GMListbox, GMListboxMenuModel, GMListboxListModel
 
 from ..model import GMModuleBook, GMBookInfo
-from ..model import GMDownloadRequest, GMDownloadResponse, GMDownloadStatus
-from ..model import GMDataSource
 
-from ..controller import GMBiqugeRequest, GMDownloadNovelManager
+from ..controller import GMBiqugeRequest
+from ..controller import GMDownloadNovelManager, GMDownloadRequest
 
 from gmhelper import GMValue, GMThreading
 
 
 class GMHomeFrame(tk.Frame):
+
     # 搜索内容
     __serach_text_content: tk.StringVar
     __serach_btn_content: tk.StringVar
-    # 本周热门小说
-    __week_gm_list_box: GMListbox
+    __search_ret_data: GMListboxMenuModel = None
 
-    __novel_chapter_gm_list_box: GMListbox = None
+    # 分类小说
+    __week_gm_list_box: GMListbox
+    __home_data: list = None
+
     # 选中的书籍
     __selected_book: GMBookInfo = None
-
-    __search_ret_data: GMListboxMenuModel = None
-    __home_data: list = None
-    __downloading_dataSource: GMDataSource = None
-
-    @classmethod
-    def run(cls):
-        main_window = tk.Tk()
-        print(main_window.geometry())
-        print(main_window.winfo_screenwidth(),
-              main_window.winfo_screenheight())
-        # main_window.geometry("380x500+0+0")
-        # main_window.title("小说首页")
-        # main_window.iconbitmap("")
-        GMHomeFrame.show(main_window)
-        main_window.mainloop()
-
-    def tesetClick(self, om):
-        print("sadf", om)
 
     @classmethod
     def show(cls, window):
         home = GMHomeFrame(window)
-        home.pack(fill=tk_cons.X)
+        home.pack(fill=tk_cons.BOTH, expand=tk_cons.YES)
 
         home.create_subView()
-        home.__get_home_data()
-        home.__get_download_cache_data()
+        # home.__get_home_data()
+        return home
 
     def create_subView(self):
         self.__home_data = []
-        self.__downloading_dataSource = GMDataSource()
-        self.__search_ret_data = GMListboxMenuModel()
-        self.__search_ret_data.menu_title = "搜索结果"
+        self.__search_ret_data = GMListboxMenuModel(menu_title="搜索结果")
 
-        # 创建视图
-        self.__create_novel_view()
-        self.__create_download_view()
-
-    # 创建小说view
-    def __create_novel_view(self):
         search_frame = tk.Frame(self)
         search_frame.pack(fill=tk_cons.X)
 
@@ -87,65 +62,52 @@ class GMHomeFrame(tk.Frame):
         search_btn.pack(side=tk_cons.RIGHT)
 
         self.__week_gm_list_box = GMListbox(
-            self, self.hot_item_click_callback).pack(fill=tk_cons.X)
-
-    # 下载列表
-    def __create_download_view(self):
+            self, self.hot_item_click_callback).pack(fill=tk_cons.BOTH,
+                                                     expand=tk_cons.YES)
         down_load_btn = tk.Button(self,
                                   text="开始下载",
                                   command=self.downlaod_click)
         down_load_btn.pack(ipadx=30)
-        self.__novel_chapter_gm_list_box = GMListbox(self).pack(
-            fill=tk_cons.X, expand=tk_cons.YES).setTopTitle("下载列表")
-
-    def __get_download_cache_data(self):
-        all_info = GMBiqugeRequest.get_download_cache_data()
-        if not all_info:
-            return
-        for ele_dic in all_info:
-            response = GMDownloadResponse(
-                GMValue.value(ele_dic, "book_url"), GMDownloadStatus.suspend,
-                GMValue.value(ele_dic, "name") + " 暂停下载...", ele_dic)
-            self.update_downloading_view(response)
-            # self.__start_download(GMValue.value(ele_dic, "book_id"),
-            #                       GMValue.value(ele_dic, "name"),
-            #                       GMValue.value(ele_dic, "chapter_id"))
 
     # 获取数据
     def __get_home_data(self):
-        data = GMBiqugeRequest.getHomePageData()
-        data_json = data.model
-        if not data_json:
-            tkMessage.showerror("获取数据失败")
-            return
-        show_list = []
+        def update_home_data():
+            data = GMBiqugeRequest.getHomePageData()
+            data_json = data.model
+            if not data_json:
+                tkMessage.showerror("获取数据失败")
+                return
+            show_list = []
 
-        def add_module_books(module: GMModuleBook):
-            if len(module.book_list) <= 0:
-                return None
-            menu_model = GMListboxMenuModel()
-            menu_model.menu_title = module.book_category_des
-            for book in module.book_list:
-                list_model = GMListboxListModel()
-                list_model.title = book.name if len(
-                    book.author) <= 0 else book.name + "_" + book.author
-                list_model.data = book
-                menu_model.list_box_datas.append(list_model)
-            show_list.append(menu_model)
+            def add_module_books(module: GMModuleBook):
+                if len(module.book_list) <= 0:
+                    return None
+                menu_model = GMListboxMenuModel()
+                menu_model.menu_title = module.book_category_des
+                for book in module.book_list:
+                    list_model = GMListboxListModel()
+                    list_model.title = book.name if len(
+                        book.author) <= 0 else book.name + "_" + book.author
+                    list_model.data = book
+                    menu_model.list_datas.append(list_model)
+                show_list.append(menu_model)
 
-        week_new_module = GMValue.value(data_json, "week_module,new_module")
-        for ele in week_new_module:
-            add_module_books(ele)
+            week_new_module = GMValue.value(data_json,
+                                            "week_module,new_module")
+            for ele in week_new_module:
+                add_module_books(ele)
 
-        hot_list = GMValue.valueList(data_json, "hot_content")
-        if len(hot_list) > 0:
-            hot_module = GMModuleBook()
-            hot_module.book_category_des = "热门小说"
-            hot_module.book_list = hot_list
-            add_module_books(hot_module)
+            hot_list = GMValue.valueList(data_json, "hot_content")
+            if len(hot_list) > 0:
+                hot_module = GMModuleBook()
+                hot_module.book_category_des = "热门小说"
+                hot_module.book_list = hot_list
+                add_module_books(hot_module)
 
-        self.__home_data = show_list
-        self.__update_main_list()
+            self.__home_data = show_list
+            self.__update_main_list()
+
+        GMThreading.start(update_home_data, "request_home_data")
 
     def __update_main_list(self, index=None):
         self.__week_gm_list_box.update_list_contetns(self.__home_data, index)
@@ -154,7 +116,7 @@ class GMHomeFrame(tk.Frame):
     # 搜索按钮点击事件
     def start_search_text_cation(self):
         content = self.__serach_text_content.get()
-        self.__search_ret_data.list_box_datas.clear()
+        self.__search_ret_data.list_datas.clear()
         GMThreading.start(self.search_text_request, "search", content=content)
 
     def search_text_request(self, content=None):
@@ -176,7 +138,7 @@ class GMHomeFrame(tk.Frame):
                 list_model.title = book.name if not book.author else (
                     book.name + "_" + book.author)
                 list_model.data = book
-                self.__search_ret_data.list_box_datas.append(list_model)
+                self.__search_ret_data.list_datas.append(list_model)
             if self.__search_ret_data not in self.__home_data:
                 self.__home_data.append(self.__search_ret_data)
 
@@ -199,54 +161,8 @@ class GMHomeFrame(tk.Frame):
         if not self.__selected_book:
             tkMessage.showerror("提示", "未选中书籍")
             return
-        self.__start_download(self.__selected_book.book_url,
-                              self.__selected_book.name)
 
-    def __start_download(self,
-                         book_url: str = None,
-                         name: str = None,
-                         chapter_id: str = None):
-        extra = {}
-        if chapter_id:
-            extra["chapter_id"] = chapter_id
-        if name:
-            extra["name"] = name
-        request = GMDownloadRequest(book_url, extra,
-                                    self.downlaod_click_callback)
-        GMDownloadNovelManager.add_download_novel(request)
-
-    # 下载回调
-    def downlaod_click_callback(self, response: GMDownloadResponse):
-        if response.code == GMDownloadStatus.success:
-            # 书籍下载完成
-            self.__downloading_dataSource.pop(response.book_url)
-            menu_model = GMListboxMenuModel(
-                self.__downloading_dataSource.dataList())
-            self.__novel_chapter_gm_list_box.update_list_contetns([menu_model])
-            tkMessage.showinfo("提示", response.msg)
-        elif response.code == GMDownloadStatus.downloading:
-            self.update_downloading_view(response)
-        else:
-            # 错误
-            tkMessage.showerror("提示", response.msg)
-
-    def update_downloading_view(self, response: GMDownloadResponse):
-        # 章节下载成功
-        # 找出任务列表中 的showmodel
-        # 列表中下载的model
-        model = self.__downloading_dataSource.value(response.book_url)
-        if not model:
-            model = GMListboxListModel()
-            self.__downloading_dataSource.add(response.book_url, model)
-
-        # 刷新数据列表中model的数据
-        model.title = response.msg
-        model.data = response.data
-
-        menu_model = GMListboxMenuModel(
-            self.__downloading_dataSource.dataList())
-        self.__novel_chapter_gm_list_box.update_list_contetns([menu_model])
-
-
-if __name__ == "__main__":
-    GMHomeFrame.run()
+        book_url: str = self.__selected_book.book_url
+        name: str = self.__selected_book.name
+        request = GMDownloadRequest(book_url, name)
+        GMDownloadNovelManager.add(request)

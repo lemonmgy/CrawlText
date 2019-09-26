@@ -121,26 +121,32 @@
 # # 启动一个消费者线程
 # threading.Thread(target=consume, args=(bq, )).start()
 
-import urllib3
-import certifi
-from urllib3.response import HTTPResponse
-import os
+# ssl._create_default_https_context = ssl._create_unverified_context()
 
-import ssl
+# # h = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
 
-import aiohttp
+# # os.path.abspath("certs.pem")
+# h = urllib3.PoolManager()
 
-ssl._create_default_https_context = ssl._create_unverified_context()
+# b = "http://www.baidu.com"
+# b = "https://www.biquge.cm"
+# rs = h.request('GET', b)
 
-# h = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+# print("typepepeepep = = ")
+# print(rs.data.decode('GBK'))
+# print("typepepeepep = = ")
 
-# os.path.abspath("certs.pem")
-h = urllib3.PoolManager()
 
-b = "http://www.baidu.com"
-b = "https://www.biquge.cm"
-rs = h.request('GET', b)
+class A:
+    __lis_xx = ["1"]
 
-print("typepepeepep = = ")
-print(rs.data.decode('GBK'))
-print("typepepeepep = = ")
+    def prints(self):
+        print("sadf")
+        return
+        print("123222")
+
+        print("123")
+
+
+if __name__ == "__main__":
+    A().prints()

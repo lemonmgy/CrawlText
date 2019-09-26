@@ -19,36 +19,23 @@ class GMListboxMenuModel(object):
     # 选项标题
     menu_title = ""
     # 列表展示的数据源 GMListboxListModel
-    list_box_datas: list = None
+    list_datas: list = None
 
-    def __init__(self, data: list = None, *args, **kwargs):
-        self.list_box_datas = []
+    def __init__(self, data: list = None, menu_title="", *args, **kwargs):
+        self.list_datas = []
+        self.menu_title = menu_title
         if data:
-            self.list_box_datas.extend(data)
+            self.list_datas.extend(data)
         super().__init__(*args, **kwargs)
 
 
-class GMListbox(object):
-    # 背景frame
-    back_frame: tk.Frame
-    top_title_view: tk.Frame
+class GMWidgetHelper(object):
+    widget: tk.Widget = None
+    is_packed = False
 
-    # 顶部选项条
-
-    top_label_title: tk.Label
-    top_label_title_stringVar: tk.StringVar
-
-    is_no_menu = False
-    top_menu_title: ttk.OptionMenu
-    top_menu_title_stringVar: tk.StringVar
-    # 底部列表
-    gm_list_box: tk.Listbox
-    gm_list_box_contents: tk.StringVar
-    # 数据源
-    gm_list_box_books_data: [GMListboxMenuModel]
-    # 列表点击事件回调
-    item_click_callback = None
-    selected_model: GMListboxMenuModel = None
+    def __init__(self, widget=None, *args):
+        self.widget = widget
+        super(GMWidgetHelper, self).__init__(*args)
 
     def pack(self, cnf={}, **kw):
         """Pack a widget in the parent widget. Use as options:
@@ -66,6 +53,38 @@ class GMListbox(object):
         pady=amount - add padding in y direction
         side=TOP or BOTTOM or LEFT or RIGHT -  where to add this widget.
         """
+        self.widget.pack(cnf=cnf, **kw)
+        self.is_packed = True
+
+    def pack_forget(self, cnf={}, **kw):
+        self.widget.pack_forget(cnf=cnf, **kw)
+        self.is_packed = False
+
+
+class GMListbox(object):
+    # 背景frame
+    back_frame: tk.Frame
+    top_title_view: tk.Frame
+
+    # 顶部选项条
+    top_label_title: tk.Label
+    top_label_title_stringVar: tk.StringVar
+
+    is_no_menu = False
+    top_menu_title: ttk.OptionMenu
+    top_menu_title_stringVar: tk.StringVar
+
+    # 底部列表
+    gm_list_box: tk.Listbox
+    gm_list_box_contents: tk.StringVar
+    # 数据源
+    gm_list_box_books_data: [GMListboxMenuModel]
+    # 列表点击事件回调
+    item_click_callback = None
+    selected_model: GMListboxMenuModel = None
+
+    def pack(self, cnf={}, **kw):
+
         if 'padx' not in kw:
             # print(kw['padx'])
             kw['padx'] = '20'
@@ -73,16 +92,16 @@ class GMListbox(object):
         return self
 
     def select_item_change(self):
-        if not self.selected_model:
+        if not self.selected_model or not self.item_click_callback:
             return
         index = self.gm_list_box.curselection()
         book = None
         if len(index) > 0:
             index = index[0]
-            if index >= 0 and index < len(self.selected_model.list_box_datas):
-                book = self.selected_model.list_box_datas[index]
-        if self.item_click_callback:
-            self.item_click_callback(book)
+            if index >= 0 and index < len(self.selected_model.list_datas):
+                book = self.selected_model.list_datas[index]
+
+        self.item_click_callback(book)
 
     def item_click(self, event):
         self.select_item_change()
@@ -104,7 +123,7 @@ class GMListbox(object):
         self.back_frame = tk.Frame(master)
 
         self.top_title_view = tk.Frame(self.back_frame, height=25)
-        self.top_title_view.pack()
+        self.top_title_view.pack(fill=tk_cons.X)
 
         self.top_label_title = tk.Label(
             self.top_title_view, textvariable=self.top_label_title_stringVar)
@@ -115,9 +134,28 @@ class GMListbox(object):
 
         self.gm_list_box = tk.Listbox(self.back_frame,
                                       listvariable=self.gm_list_box_contents)
-        self.gm_list_box.pack(fill=tk_cons.X)
+        self.gm_list_box.pack(fill=tk_cons.BOTH, expand=tk_cons.YES)
         self.gm_list_box.bind("<ButtonRelease-1>", self.item_click)
+        self.show_loading()
         super().__init__(*args, **kwargs)
+
+    loading = None
+
+    def show_loading(self):
+        self.top_label_title.pack_forget()
+        self.top_menu_title.pack_forget()
+        self.hide_loading()
+        self.loading = tk.Label(self.gm_list_box,
+                                text="加载中...",
+                                font=("", "10"),
+                                fg='blue')
+
+        self.loading.place(x=0, y=0, relwidth=1, relheight=1)
+
+    def hide_loading(self):
+        if self.loading:
+            self.loading.destroy()
+            self.loading = None
 
     def setTopTitle(self, title):
         self.top_label_title.pack_forget()
@@ -129,6 +167,7 @@ class GMListbox(object):
     def update_list_contetns(self,
                              list_data: [GMListboxMenuModel],
                              defalut_index=None):
+        self.hide_loading()
         if not list_data:
             list_data = []
         if not self.is_no_menu:
@@ -183,6 +222,9 @@ class GMListbox(object):
             addkey = "0"
         return __key(data, defaultKey, addkey)
 
+    def update_current_option_menu(self):
+        self.__update_selected_model(self.selected_model)
+
     def __update_selected_model(self, selectedModel=None):
         self.selected_model = selectedModel
         if self.selected_model:
@@ -192,11 +234,13 @@ class GMListbox(object):
                 self.top_menu_title_stringVar.set(top_title)
 
             title_list = []
-            for menuModel in self.selected_model.list_box_datas:
+            for menuModel in self.selected_model.list_datas:
                 title_list.append(menuModel.title)
             self.gm_list_box_contents.set(title_list)
         else:
             self.top_menu_title_stringVar.set("暂无数据")
             self.gm_list_box_contents.set([])
+
+        self.gm_list_box.update()
 
         self.select_item_change()

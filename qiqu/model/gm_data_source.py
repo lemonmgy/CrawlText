@@ -29,6 +29,7 @@ class GMDataSource():
         value = None
         if key in self.__data_dict:
             value = self.__data_dict[key]
+            del self.__data_dict[key]
         if value and value in self.__data_list:
             self.__data_list.remove(value)
 

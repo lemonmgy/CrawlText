@@ -201,7 +201,7 @@ class GMBiqugeRequest():
 
     @classmethod
     def getNovelContentData(cls, chapter_url):
-        response = GMNovelHttp.requestBQYHTML(chapter_url)
+        response = GMNovelHttp.requestBQYHTML(chapter_url, log=False)
         p = PyQuery(response.data)
         box_con = p('.content_read .box_con')
         bookname = box_con('.bookname')
@@ -245,16 +245,16 @@ class GMBiqugeRequest():
             return book_list
 
         def a_search_result_data(response: GMResponse):
+            # format=xhtml; url=https://m.biquge.cm/8/8453/
             pat = re.compile(r'format=xhtml;.*?"/>')
-            pat_ret = pat.findall(str(response.data))
-            if pat_ret:
-                url = pat_ret[0]
-                # format=xhtml; url=https://m.biquge.cm/8/8453/
-                # pat = re.compile(r'[0-9]+/[0-9]+')
-                if url:
+            pat1 = pat.findall(str(response.data))
+            if pat1:
+                pat2 = re.search(r'[0-9]+/[0-9]+', pat1[0])
+                if pat2:
                     book = GMBookInfo()
                     book.name = name
-                    book.url_with_book_id(str(url))
+                    book.url_with_book_id(
+                        GMNovelHttp.append_bqg_host(str(pat2.group())))
                     return [book]
             return []
 
