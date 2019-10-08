@@ -14,6 +14,8 @@ from ..controller import GMDownloadNovelManager, GMDownloadRequest
 
 from gmhelper import GMValue, GMThreading
 
+defalut_text = "邪御天娇"
+
 
 class GMHomeFrame(tk.Frame):
 
@@ -35,7 +37,7 @@ class GMHomeFrame(tk.Frame):
         home.pack(fill=tk_cons.BOTH, expand=tk_cons.YES)
 
         home.create_subView()
-        # home.__get_home_data()
+        home.__get_home_data()
         return home
 
     def create_subView(self):
@@ -46,7 +48,7 @@ class GMHomeFrame(tk.Frame):
         search_frame.pack(fill=tk_cons.X)
 
         self.__serach_text_content = tk.StringVar()
-        self.__serach_text_content.set(("诸天至尊"))
+        self.__serach_text_content.set((defalut_text))
         serach_entry = tk.Entry(search_frame,
                                 textvariable=self.__serach_text_content)
         serach_entry.pack(side=tk_cons.LEFT,

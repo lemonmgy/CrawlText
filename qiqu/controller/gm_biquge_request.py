@@ -83,8 +83,7 @@ class GMBiqugeRequest():
                 pat = re.compile(r'</a>.+?</li>')
                 search_ret = re.search(pat, str(li))
                 if not search_ret:
-                    ret = GMHtmlString.remove_tag(str(search_ret.group()),
-                                                  ['a', 'li'])
+                    ret = GMHtmlString.remove_tag(str(search_ret.group()))
                     for e in ["/", " "]:
                         ret = ret.replace(e, "")
                     li_book.author = ret
@@ -255,6 +254,17 @@ class GMBiqugeRequest():
                     book.name = name
                     book.url_with_book_id(
                         GMNovelHttp.append_bqg_host(str(pat2.group())))
+                    p = PyQuery(response.data)
+                    # p("#nr .odd a"))  # 是查找id的标签 \
+                    # .是查找class 的标签  link 是查找link 标签 中间的空格表示里层
+                    info = p('#maininfo #info')
+                    au = re.compile(r'<p>作.*?者：.*?</p>').findall(str(info))
+                    if au:
+                        au = GMHtmlString.remove_tag(str(au[0]))
+                        au = re.sub(re.compile('作.*?者：'), "", au)
+                        au = GMHtmlString.remove_escape_character(au, True)
+                        book.author = au
+                    print(info)
                     return [book]
             return []
 

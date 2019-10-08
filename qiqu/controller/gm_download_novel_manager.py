@@ -183,6 +183,15 @@ class GMDownloadNovelManager(object):
         task = cls.task_with_request(request)
         if task:
             task.state = GMDownloadStatus.delete
+            name = request.book_name
+            if not name:
+                info = GMDownloadCache.info(request.url)
+                name = GMValue.valueStirng(info, GMDownloadCache.name_key)
+            if name:
+                path = GMFileManager.downloadTempFilePath(name, '.txt')
+                if os.path.exists(path):
+                    os.remove(path)
+
             del GMDownloadNovelManager().__all_tasks[request.book_url]
             GMDownloadCache.remove(request.book_url)
 
@@ -273,7 +282,7 @@ class GMDownloadNovelTask(object):
         else:
             callback(GMDownloadStatus.downloading, "开始下载...")
 
-            chapter_list = list(bookModel.chapter_list)[0:5]
+            chapter_list = list(bookModel.chapter_list)
             index = 1
             all_count = len(bookModel.chapter_list)
             is_exists_id = False

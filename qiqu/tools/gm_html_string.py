@@ -6,19 +6,13 @@ import re
 
 class GMHtmlString():
     @classmethod
-    def remove_tag(self, content, tags):
+    def remove_tag(self, content):
         """
         移除闭合标签 可以数组，或者字符串
         """
         ret = str(content)
-        if isinstance(tags, str):
-            ret = ret.replace('<%s>' % str(tags), "")
-            ret = ret.replace('</%s>' % str(tags), "")
-        elif isinstance(tags, list):
-            for tag in tags:
-                ret = ret.replace('<%s>' % tag, "")
-                ret = ret.replace('</%s>' % tag, "")
-        return ret
+        pat = re.compile('<.*?>')
+        return re.sub(pat, "", ret)
 
     @classmethod
     def remove_escape_character(self,
