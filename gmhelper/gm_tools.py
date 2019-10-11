@@ -153,6 +153,7 @@ class GMResponse(object):
     url = ""
     status = ""
     data = ""
+    o_response = None
 
 
 class GMHTTP(object):
@@ -216,6 +217,7 @@ class GMHTTP(object):
         gm_r.url = url
         gm_r.data = response.data
         gm_r.status = response.status
+        gm_r.o_response = response
         if log:
             print(url + "    status = " + str(gm_r.status))
         return gm_r
