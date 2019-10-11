@@ -128,7 +128,11 @@ class GMJson(object):
     # 将key value转化为json字符
     def __to_json_string(self, content):
         def deal_character(content):
-            return str(content).replace("\"", "”")
+            ret = str(content)
+            p = {"\"": "”", "\\": ""}
+            for (key, vlaue) in p.items():
+                ret = ret.replace(key, vlaue)
+            return ret
 
         return "\"" + deal_character(content) + "\""
 
@@ -205,7 +209,7 @@ class GMHTTP(object):
         http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED',
                                    ca_certs=certifi.where())
         if log:
-            print(url + "    status = startRequest")
+            print(url + "    status = start")
         response = http.request('GET', url, new_fields, headers)
 
         gm_r = GMResponse()

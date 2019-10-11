@@ -1,36 +1,31 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
+import sched
+import time
+from datetime import datetime
 
-class GMDownloadNovelManager(object):
-    max_count = 3
-    downloading_count = 0
-    all_tasks = {}
-    __notifys = set()
+# class GMSchdule(object):
 
-    __state = {}
+#     # 初始化sched模块的scheduler类
+#     # 第一个参数是一个可以返回时间戳的函数，第二参数可以在定时未到达之前阻塞
+#     schedule = None
 
-    # def __new__(cls, *args, **kwargs):
-    #     ob = super(GMDownloadNovelManager, cls).__new__(cls, *args, **kwargs)
-    #     ob.__dict__ = cls.__state
-    #     print(ob.__dict__)
-    #     return ob
+#     # 被周期性调度触发函数
+#     def printTime(self, inc):
+#         print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+#         self.schedule.enter(inc, 0, self.printTime, (inc, ))
 
-    def __init__(self, *args, **kwargs):
-        self.__dict__ = GMDownloadNovelManager.__state
-        print(self.__dict__)
-        super().__init__(*args, **kwargs)
+#     # 默认参数60s
+#     def main(self, inc=60):
+#         # enter四个参数分别为：间隔事件,优先级（用于同时到达两个事件同时执行的顺序），被调度触发的函数
+#         # 给该触发器函数的参数（tuple形式）
+#         self.schdule = sched.scheduler(time.time, time.sleep)
+#         self.schedule.enter(0, 0, self.printTime, (inc, ))
+#         self.schedule.run()
 
+# g = GMSchdule()
+# g.main(5)
 
-if __name__ == "__main__":
-    # GMDownloadNovelManager().all_tasks["2"] = "33"
-    # print(GMDownloadNovelManager().all_tasks)
-
-    # GMDownloadNovelManager.all_tasks = {}
-    # GMDownloadNovelManager.all_tasks["2xx"] = "33"
-    # GMDownloadNovelManager().all_tasks["x"] = "x"
-    # print(GMDownloadNovelManager().all_tasks)
-    # print(GMDownloadNovelManager.all_tasks)
-    # GMDownloadNovelManager().all_tasks = {}
-    # GMDownloadNovelManager().max_count = 2
-    print(GMDownloadNovelManager.max_count)
+name = "哈哈哈2"
+print(name.replace("2", "x"))

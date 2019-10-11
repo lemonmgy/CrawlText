@@ -200,7 +200,7 @@ class GMBiqugeRequest():
 
     @classmethod
     def getNovelContentData(cls, chapter_url):
-        response = GMNovelHttp.requestBQYHTML(chapter_url, log=False)
+        response = GMNovelHttp.requestBQYHTML(chapter_url)
         p = PyQuery(response.data)
         box_con = p('.content_read .box_con')
         bookname = box_con('.bookname')

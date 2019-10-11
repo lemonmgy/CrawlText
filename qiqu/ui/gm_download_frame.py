@@ -75,7 +75,7 @@ class GMDownloadFrame(tk.Frame):
         if not request:
             return
         GMDownloadNovelManager.delete(request)
-        self.__downloading_dataSource.pop(request.book_url)
+        self.__downloading_dataSource.pop(request.url)
         self.__novel_chapter_gm_list_box.update_current_option_menu()
 
     def suspend_click(self):
@@ -88,7 +88,7 @@ class GMDownloadFrame(tk.Frame):
         request = self.request_with_selected_model()
         if not request:
             return
-        GMDownloadNovelManager.start(request)
+        GMDownloadNovelManager.recovery(request)
 
     def item_click_callback(self, model):
         self.__selected_model = model
