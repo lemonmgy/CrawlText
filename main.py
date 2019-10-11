@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import MainUI
- 
-# import GMCrawlWebDataManger
+from qiqu import GMWindowFrame
 
-# GMCrawlWebDataManger.searchNovelData("从零开始")
- 
+if __name__ == "__main__":
+    GMWindowFrame.run()
