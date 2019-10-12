@@ -240,17 +240,21 @@ class GMImage(object):
 
 class GMThreading():
     thread = None
+    re_kwargs = None
     """
     创建线程
     """
     @staticmethod
-    def start(target, name: str, **kwargs):
+    def start(name: str, target, **kwargs):
         if not name:
             name = str(datetime.datetime.now())
         name = "threading_" + name
+
         t = threading.Thread(target=target, kwargs=kwargs, name=name)
         t.start()
         g = GMThreading()
+        if kwargs:
+            g.re_kwargs = dict(kwargs)
         g.thread = t
         return g
 
@@ -267,7 +271,13 @@ class GMFileManager(object):
 
     @staticmethod
     def downloadTempFilePath(fileName: str = "", extension=""):
-        return GMFileManager.getFilePath('download/.temp', fileName, extension)
+        folder_path = 'download/.temp'
+        t_l = fileName.split("/")
+        if len(t_l) > 1:
+            fileName = t_l[-1]
+            del t_l[-1]
+            folder_path += "/" + "/".join(t_l)
+        return GMFileManager.getFilePath(folder_path, fileName, extension)
 
     @staticmethod
     def getFilePath(folder, fileName: str = "", extension=""):
@@ -307,7 +317,7 @@ class GMFileManager(object):
         return ""
 
     @staticmethod
-    def replaceContent(path, content):
+    def createContent(path, content):
         """
         覆盖（新建）文件内容
         """
@@ -339,4 +349,15 @@ class GMFileManager(object):
         """
         reCotnent = GMFileManager.readContent(path)
         reCotnent += (("" if (len(reCotnent) == 0) else "\r\r") + content)
-        GMFileManager.replaceContent(path, reCotnent)
+        GMFileManager.createContent(path, reCotnent)
+
+
+if __name__ == "__main__":
+    content = ""
+    for x in range(10):
+        path = "/Users/lemonmgy/Desktop/下载一半/爵士/绝世邪神_%s.txt" % x
+
+        content_temp = GMFileManager.readContent(path)
+        content += (("" if (len(content) == 0) else "\r\r") + content_temp)
+    GMFileManager.createContent("/Users/lemonmgy/Desktop/下载一半/爵士/绝世邪神.txt",
+                                content)

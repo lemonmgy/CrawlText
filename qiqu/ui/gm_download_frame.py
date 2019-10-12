@@ -101,7 +101,7 @@ class GMDownloadFrame(tk.Frame):
             for task in task_list:
                 self.update_downloading_view(task.response)
 
-        GMThreading.start(update_download_cache_data, "dowload_cache_data")
+        GMThreading.start("dowload_cache_data", update_download_cache_data)
 
     # 下载回调
     def downlaod_click_callback(self, response: GMDownloadResponse):

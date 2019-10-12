@@ -200,18 +200,26 @@ class GMBiqugeRequest():
 
     @classmethod
     def getNovelContentData(cls, chapter_url):
-        response = GMNovelHttp.requestBQYHTML(chapter_url)
+        response = GMNovelHttp.requestBQYHTML(chapter_url, log=False)
         p = PyQuery(response.data)
         box_con = p('.content_read .box_con')
         bookname = box_con('.bookname')
 
         chapter = GMBookChapter()
         chapter.url_with_chapter_id(chapter_url)
-        chapter.chapter_title = bookname('h1').text()
-
+        o_chapter_title = bookname('h1').text()
+        chapter.chapter_title = GMHtmlString.conversion_title(o_chapter_title)
         book_content = box_con('div #content').text()
-        chapter.content = GMHtmlString.remove_escape_character(
-            book_content, True)
+        book_content = GMHtmlString.remove_escape_character(book_content, True)
+        book_content = GMHtmlString.remove_tag(book_content)
+        title_list = o_chapter_title.split(" ")
+        if len(title_list) > 1:
+            book_content = book_content.replace("".join(title_list), "")
+            book_content = book_content.replace(title_list[0], "")
+        else:
+            book_content = book_content.replace(o_chapter_title, "")
+
+        chapter.content = book_content
         return cls.return_data_deal(chapter)
 
     @classmethod

@@ -14,6 +14,7 @@ class GMDownloadCache():
     name_key = "book_name"
     chapter_id_key = "chapter_id"
     msg_key = "msg_key"
+    complete_key = "complete_key"
 
     __download_file_path = GMFileManager.downloadTempFilePath(
         '.download_info.json')
@@ -116,7 +117,53 @@ class GMDownloadCache():
     @classmethod
     def __write_info(cls, cache_dict):
         info_path = GMDownloadCache.__download_file_path
-        GMFileManager.replaceContent(info_path, cache_dict)
+        GMFileManager.createContent(info_path, cache_dict)
+
+    @classmethod
+    def mulit_save(cls,
+                   name: str,
+                   index: str,
+                   chapter_id: str = "",
+                   complete=""):
+
+        if not name:
+            return
+        if not chapter_id:
+            chapter_id = ""
+
+        cache_dict = {
+            cls.name_key: name,
+            cls.chapter_id_key: chapter_id,
+            cls.msg_key: name + "_已暂停...",
+            cls.complete_key: complete
+        }
+        info_path = cls.download_temp_info_path(name, index)
+        GMFileManager.createContent(info_path, cache_dict)
+
+    @classmethod
+    def mulit_info(cls, name: str, index: str):
+        if not name:
+            return None
+
+        info_path = cls.download_temp_info_path(name, index)
+        content = GMFileManager.readContent(info_path)
+
+        cache_dict: dict = None
+        if content:
+            try:
+                cache_dict = GMJson.loads(content)
+            finally:
+                pass
+        return cache_dict
+
+    @classmethod
+    def download_temp_info_path(cls, name: str, index: str):
+        return GMFileManager.downloadTempFilePath(
+            name + "/" + ('.download_info_' + index), ".json")
+
+    @classmethod
+    def download_temp_path(cls, name: str, index: str):
+        return GMFileManager.downloadTempFilePath(name + "/" + index, ".txt")
 
 
 if __name__ == "__main__":
