@@ -6,6 +6,7 @@ import tkinter as tk
 from .gm_home_frame import GMHomeFrame
 from .gm_download_frame import GMDownloadToplevel
 from gmhelper import GMFileManager
+from .gm_download_frame import GMDownloadFrame
 
 
 class GMWindowFrame(tk.Tk):
@@ -19,13 +20,15 @@ class GMWindowFrame(tk.Tk):
     def loadSubFrame(self):
         self.__menubar()
         GMHomeFrame.show(self)
+        l = tk.Label(self, text="下载列表", height=2)
+        l.pack()
+        GMDownloadFrame.show(self)
 
     def __menubar(self):
         menubar = tk.Menu(self)
         self['menu'] = menubar
 
         home_menu = tk.Menu(menubar, tearoff=0)
-        home_menu.add_command(label="下载列表", command=self.__download_menu_click)
         home_menu.add_command(label="已完成", command=self.__download_completed)
         menubar.add_cascade(label="文件", menu=home_menu)
 

@@ -5,38 +5,27 @@
 
 from gmhelper import GMJson, GMFileManager
 
-info_dict_key = "__info_dict_key"
-info_list_key = "__info_list_key"
-
 
 class GMDownloadCache():
-    url_key = "book_url"
-    name_key = "book_name"
-    chapter_id_key = "chapter_id"
-    msg_key = "msg_key"
-    complete_key = "complete_key"
 
     __download_file_path = GMFileManager.downloadTempFilePath(
         '.download_info.json')
+    url_key = "book_url"
+    name_key = "book_name"
+    author_key = "book_author"
+    msg_key = "msg_key"
 
     @classmethod
-    def save(cls, book_url: str, name: str, chapter_id: str = ""):
+    def save(cls, book_url: str, name: str, author: str = ""):
         if not book_url or not name:
             return
-        if not chapter_id:
-            chapter_id = ""
+        if not author:
+            author = ""
 
-        cache_dict = GMDownloadCache.__read_info()
-        info_list: list = cache_dict[info_list_key]
-
-        if book_url not in info_list:
-            info_list.append(book_url)
-
-        info_dict: dict = cache_dict[info_dict_key]
-        info_dict[book_url] = {
+        cache_dict = dict(GMDownloadCache.__read_info())
+        cache_dict[book_url] = {
             cls.url_key: book_url,
             cls.name_key: name,
-            cls.chapter_id_key: chapter_id,
             cls.msg_key: name + "_已暂停..."
         }
         GMDownloadCache.__write_info(cache_dict)
@@ -45,49 +34,25 @@ class GMDownloadCache():
     def remove(cls, book_url: str = None):
         if not book_url:
             return
-        cache_dict = GMDownloadCache.__read_info()
-        info_list: list = cache_dict[info_list_key]
-        if book_url in info_list:
-            info_list.remove(book_url)
+        cache_dict = dict(GMDownloadCache.__read_info())
 
-        info_dict: dict = cache_dict[info_dict_key]
-        if book_url in info_dict:
-            del info_dict[book_url]
+        if book_url in cache_dict.keys():
+            del cache_dict[book_url]
         GMDownloadCache.__write_info(cache_dict)
 
     @classmethod
     def all_list_info(cls):
-
-        cache_dict = GMDownloadCache.__read_info()
-        info_list: list = cache_dict[info_list_key]
-        info_dict: dict = cache_dict[info_dict_key]
-
-        ret = []
-        keys = list(info_dict.keys())
-        need_save = False
-        for book_url in info_list:
-            if book_url not in keys:
-                need_save = True
-                info_list.remove(book_url)
-            else:
-                ret.append(info_dict[book_url])
-
-        for book_url in keys:
-            if book_url not in info_list:
-                need_save = True
-                info_list.append(book_url)
-                ret.append(info_dict[book_url])
-        if need_save:
-            GMDownloadCache.__write_info(cache_dict)
-        return ret
+        cache_dict = dict(GMDownloadCache.__read_info())
+        if cache_dict:
+            return cache_dict.values()
+        return None
 
     @classmethod
     def info(cls, book_url):
         if book_url:
             cache_dict = GMDownloadCache.__read_info()
-            info_dict: dict = cache_dict[info_dict_key]
-            if book_url in list(info_dict.keys()):
-                return info_dict[book_url]
+            if book_url in list(cache_dict.keys()):
+                return cache_dict[book_url]
         return None
 
     @classmethod
@@ -105,19 +70,17 @@ class GMDownloadCache():
         if not cache_dict:
             cache_dict = {}
 
-        keys = list(cache_dict.keys())
-        if info_dict_key not in keys:
-            cache_dict[info_dict_key] = {}
-
-        if info_list_key not in keys:
-            cache_dict[info_list_key] = []
-
         return cache_dict
 
     @classmethod
     def __write_info(cls, cache_dict):
         info_path = GMDownloadCache.__download_file_path
         GMFileManager.createContent(info_path, cache_dict)
+
+    mulit_name_key = "book_name"
+    mulit_chapter_id_key = "chapter_id"
+    mulit_msg_key = "msg_key"
+    mulit_complete_key = "complete_key"
 
     @classmethod
     def mulit_save(cls,
@@ -132,10 +95,10 @@ class GMDownloadCache():
             chapter_id = ""
 
         cache_dict = {
-            cls.name_key: name,
-            cls.chapter_id_key: chapter_id,
-            cls.msg_key: name + "_已暂停...",
-            cls.complete_key: complete
+            cls.mulit_name_key: name,
+            cls.mulit_chapter_id_key: chapter_id,
+            cls.mulit_msg_key: name + " 已暂停...",
+            cls.mulit_complete_key: complete
         }
         info_path = cls.download_temp_info_path(name, index)
         GMFileManager.createContent(info_path, cache_dict)

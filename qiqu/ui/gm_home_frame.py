@@ -5,7 +5,7 @@ import tkinter as tk
 import tkinter.messagebox as tkMessage
 import tkinter.constants as tk_cons
 
-from .gm_list_box import GMListbox, GMListboxMenuModel, GMListboxListModel
+from .gm_list_box import GMListbox, GMListboxListStyle, GMListboxMenuModel, GMListboxListModel
 
 from ..model import GMModuleBook, GMBookInfo
 
@@ -64,10 +64,11 @@ class GMHomeFrame(tk.Frame):
         search_btn.pack(side=tk_cons.RIGHT)
 
         self.__week_gm_list_box = GMListbox(
-            self, self.hot_item_click_callback).pack(fill=tk_cons.BOTH,
-                                                     expand=tk_cons.YES)
+            self, self.hot_item_click_callback,
+            GMListboxListStyle.menu_title).pack(fill=tk_cons.BOTH,
+                                                expand=tk_cons.YES)
         down_load_btn = tk.Button(self,
-                                  text="开始下载",
+                                  text="加入到下载列表",
                                   command=self.downlaod_click)
         down_load_btn.pack(ipadx=30)
 

@@ -277,10 +277,14 @@ class GMFileManager(object):
             fileName = t_l[-1]
             del t_l[-1]
             folder_path += "/" + "/".join(t_l)
+
         return GMFileManager.getFilePath(folder_path, fileName, extension)
+
+    file_lock = threading.RLock()
 
     @staticmethod
     def getFilePath(folder, fileName: str = "", extension=""):
+        GMFileManager.file_lock.acquire()
         # if len(fileName) == 0:
         #     fileName = "/"
         #     extension = ""
@@ -304,6 +308,8 @@ class GMFileManager(object):
 
         if len(extension) > 0:
             extension = ("" if ("." in extension) else ".") + extension
+        GMFileManager.file_lock.release()
+
         return os.path.join(downloadPath, fileName + extension)
 
     @staticmethod
@@ -350,14 +356,3 @@ class GMFileManager(object):
         reCotnent = GMFileManager.readContent(path)
         reCotnent += (("" if (len(reCotnent) == 0) else "\r\r") + content)
         GMFileManager.createContent(path, reCotnent)
-
-
-if __name__ == "__main__":
-    content = ""
-    for x in range(10):
-        path = "/Users/lemonmgy/Desktop/下载一半/爵士/绝世邪神_%s.txt" % x
-
-        content_temp = GMFileManager.readContent(path)
-        content += (("" if (len(content) == 0) else "\r\r") + content_temp)
-    GMFileManager.createContent("/Users/lemonmgy/Desktop/下载一半/爵士/绝世邪神.txt",
-                                content)

@@ -75,5 +75,6 @@ def conversion_title(ostr: str = ""):
 
 
 if __name__ == "__main__":
-    strss = "123 找那个会"
-    print("xxx".join(strss.split(" ")))
+    dictss = {"2": "s", "3": "d"}
+    for x in dictss.values():
+        print(x)

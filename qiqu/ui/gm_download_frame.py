@@ -58,7 +58,6 @@ class GMDownloadFrame(tk.Frame):
                                                      self.item_click_callback)
         self.__novel_chapter_gm_list_box.pack(fill=tk_cons.BOTH,
                                               expand=tk_cons.YES)
-        self.__novel_chapter_gm_list_box.setTopTitle("")
 
         self.__novel_chapter_gm_list_box.update_list_contetns(
             [self.menu_model])
@@ -105,9 +104,7 @@ class GMDownloadFrame(tk.Frame):
 
     # 下载回调
     def downlaod_click_callback(self, response: GMDownloadResponse):
-        if response.code == GMDownloadStatus.downloading or\
-           response.code == GMDownloadStatus.suspend or\
-           response.code == GMDownloadStatus.success:
+        if response.code != GMDownloadStatus.error:
             self.update_downloading_view(response)
         else:
             # 错误
