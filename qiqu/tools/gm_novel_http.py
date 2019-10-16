@@ -4,15 +4,16 @@
 from gmhelper import GMHTTP
 
 
-class GMNovelHttp():
+class GMNovelHttp(GMHTTP):
     bqg_host = "https://www.biquge.cm"
     bqg_search_url = bqg_host + "/modules/article/sou.php"
 
     @classmethod
-    def requestBQYHTML(self, url, params=None):
-        response = GMHTTP.get(url, params, fields_encoding="gb2312")
+    def requestBQYHTML(cls, url, params=None, log=True):
+        response = cls.get(url, params, fields_encoding="gb2312", log=log)
         try:
-            response.data = response.data.decode('GBK')
+            # response.data = response.data.decode('GBK', "replace")
+            response.data = response.data.decode('GBK', "ignore")
         except IOError as e:
             print(e)
             print("内容有问题：" + url)
@@ -23,6 +24,8 @@ class GMNovelHttp():
             # print("response.data ==== " + response.data)
             return response
 
+
+# 4985288
 
 # https://www.biquge.cm/5/5750/3358967.html    status = start
 # https://www.biquge.cm/5/5750/3358967.html    status = 200

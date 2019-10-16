@@ -5,7 +5,8 @@ import tkinter as tk
 import tkinter.messagebox as tkMessage
 import tkinter.constants as tk_cons
 
-from .gm_list_box import GMListbox, GMListboxMenuModel, GMListboxListModel
+from .gm_list_box import GMListbox, GMListboxListStyle
+from .gm_list_box import GMListboxMenuModel, GMListboxListModel
 
 from ..model import GMModuleBook, GMBookInfo
 
@@ -14,7 +15,7 @@ from ..controller import GMDownloadNovelManager, GMDownloadRequest
 
 from gmhelper import GMValue, GMThreading
 
-defalut_text = "邪御天娇"
+defalut_text = "绝世邪神"
 
 
 class GMHomeFrame(tk.Frame):
@@ -64,10 +65,11 @@ class GMHomeFrame(tk.Frame):
         search_btn.pack(side=tk_cons.RIGHT)
 
         self.__week_gm_list_box = GMListbox(
-            self, self.hot_item_click_callback).pack(fill=tk_cons.BOTH,
-                                                     expand=tk_cons.YES)
+            self, self.hot_item_click_callback,
+            GMListboxListStyle.menu_title).pack(fill=tk_cons.BOTH,
+                                                expand=tk_cons.YES)
         down_load_btn = tk.Button(self,
-                                  text="开始下载",
+                                  text="加入到下载列表",
                                   command=self.downlaod_click)
         down_load_btn.pack(ipadx=30)
 
@@ -109,7 +111,7 @@ class GMHomeFrame(tk.Frame):
             self.__home_data = show_list
             self.__update_main_list()
 
-        GMThreading.start(update_home_data, "request_home_data")
+        GMThreading.start("request_home_data", update_home_data)
 
     def __update_main_list(self, index=None):
         self.__week_gm_list_box.update_list_contetns(self.__home_data, index)
@@ -119,7 +121,7 @@ class GMHomeFrame(tk.Frame):
     def start_search_text_cation(self):
         content = self.__serach_text_content.get()
         self.__search_ret_data.list_datas.clear()
-        GMThreading.start(self.search_text_request, "search", content=content)
+        GMThreading.start("search", self.search_text_request, content=content)
 
     def search_text_request(self, content=None):
         if self.__serach_btn_content.get() == "搜索中.":
@@ -153,9 +155,9 @@ class GMHomeFrame(tk.Frame):
             book = showModel.data
             if isinstance(book, GMBookInfo):
                 self.__selected_book = book
-                print("%s = %s" % (book.name, book.book_url))
+                print("selected_book %s = %s" % (book.name, book.book_url))
                 return
-        print("__selected_book = None")
+        print("selected_book = None")
         self.__selected_book = None
 
     # 下载按钮点击事件

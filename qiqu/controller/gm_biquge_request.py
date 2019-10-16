@@ -9,11 +9,11 @@ from pyquery import PyQuery
 
 from ..model import GMBookInfo, GMModuleBook, GMBookChapter
 
-from gmhelper import GMResponse, GMJson
-from ..tools import GMDownloadCache, GMHtmlString, GMNovelHttp
+from gmhelper import GMHTTPResponse, GMJson
+from ..tools import GMHtmlString, GMNovelHttp
 
 
-class GMBiqugeRequest():
+class GMBiqugeRequest(GMNovelHttp):
 
     # 原始数据， json字符串， json数据
     @classmethod
@@ -23,7 +23,7 @@ class GMBiqugeRequest():
     # 小说网站首页
     @classmethod
     def getHomePageData(cls):
-        response = GMNovelHttp.requestBQYHTML(GMNovelHttp.bqg_host)
+        response = cls.requestBQYHTML(cls.bqg_host)
 
         # pat = re.compile(r"hotcontent\">")
         # ret = re.search(pat, )
@@ -142,7 +142,7 @@ class GMBiqugeRequest():
     def getNovelListData(cls, book_url: str = ""):
         if not book_url:
             return GMJson
-        response = GMNovelHttp.requestBQYHTML(book_url)
+        response = cls.requestBQYHTML(book_url)
         p = PyQuery(response.data)
         book = GMBookInfo()
         book.url_with_book_id(book_url)
@@ -152,7 +152,7 @@ class GMBiqugeRequest():
             img = box_con_sidebar('img').attr('onerror')
             pat = re.compile(r'/.*?.jpg')
             img = str(re.search(pat, img).group())
-        book.img = GMNovelHttp.append_bqg_host(img)
+        book.img = cls.append_bqg_host(img)
 
         box_con_maininfo = p('.box_con #maininfo')
         book.des = box_con_maininfo('#intro p').text()
@@ -200,18 +200,26 @@ class GMBiqugeRequest():
 
     @classmethod
     def getNovelContentData(cls, chapter_url):
-        response = GMNovelHttp.requestBQYHTML(chapter_url)
+        response = cls.requestBQYHTML(chapter_url, log=False)
         p = PyQuery(response.data)
         box_con = p('.content_read .box_con')
         bookname = box_con('.bookname')
 
         chapter = GMBookChapter()
         chapter.url_with_chapter_id(chapter_url)
-        chapter.chapter_title = bookname('h1').text()
-
+        o_chapter_title = bookname('h1').text()
+        chapter.chapter_title = GMHtmlString.conversion_title(o_chapter_title)
         book_content = box_con('div #content').text()
-        chapter.content = GMHtmlString.remove_escape_character(
-            book_content, True)
+        book_content = GMHtmlString.remove_escape_character(book_content, True)
+        book_content = GMHtmlString.remove_tag(book_content)
+        title_list = o_chapter_title.split(" ")
+        if len(title_list) > 1:
+            book_content = book_content.replace("".join(title_list), "")
+            book_content = book_content.replace(title_list[0], "")
+        else:
+            book_content = book_content.replace(o_chapter_title, "")
+
+        chapter.content = book_content
         return cls.return_data_deal(chapter)
 
     @classmethod
@@ -219,7 +227,7 @@ class GMBiqugeRequest():
         # 请求搜索html https://www.biquyun.com/# modules/article/soshu.php?
         # searchkey=+%B4%D3%C1%E3%BF%AA%CA%BC
 
-        def multiple_search_result_data(response: GMResponse):
+        def multiple_search_result_data(response: GMHTTPResponse):
             p = PyQuery(response.data)
             tbody = p('#main #content .grid #nr').items()
 
@@ -243,7 +251,7 @@ class GMBiqugeRequest():
                 book_list.append(create_book(tds))
             return book_list
 
-        def a_search_result_data(response: GMResponse):
+        def a_search_result_data(response: GMHTTPResponse):
             # format=xhtml; url=https://m.biquge.cm/8/8453/
             pat = re.compile(r'format=xhtml;.*?"/>')
             pat1 = pat.findall(str(response.data))
@@ -253,7 +261,7 @@ class GMBiqugeRequest():
                     book = GMBookInfo()
                     book.name = name
                     book.url_with_book_id(
-                        GMNovelHttp.append_bqg_host(str(pat2.group())))
+                        cls.append_bqg_host(str(pat2.group())))
                     p = PyQuery(response.data)
                     # p("#nr .odd a"))  # 是查找id的标签 \
                     # .是查找class 的标签  link 是查找link 标签 中间的空格表示里层
@@ -268,8 +276,7 @@ class GMBiqugeRequest():
                     return [book]
             return []
 
-        response = GMNovelHttp.requestBQYHTML(GMNovelHttp.bqg_search_url,
-                                              {"searchkey": name})
+        response = cls.requestBQYHTML(cls.bqg_search_url, {"searchkey": name})
         book_list = multiple_search_result_data(response)
 
         if not book_list:
@@ -277,20 +284,3 @@ class GMBiqugeRequest():
         if not book_list:
             book_list = []
         return cls.return_data_deal(book_list)
-
-    @classmethod
-    def get_download_cache_data(cls):
-        all_info = GMDownloadCache.all_list_info()
-        return all_info
-        # if all_info:
-        #     data_list = []
-        #     for ele_dic in all_info:
-        #         box_list_model = GMListboxListModel()
-        #         box_list_model.title = GMValue.value(ele_dic,
-        #                                              "name") + "_准备下载..."
-        #         box_list_model.data = ele_dic
-        #         data_list.append(box_list_model)
-
-        #     menu_model = GMListboxMenuModel(data_list)
-        #     return menu_model
-        # return None

@@ -27,5 +27,54 @@ from datetime import datetime
 # g = GMSchdule()
 # g.main(5)
 
-name = "哈哈哈2"
-print(name.replace("2", "x"))
+
+def conversion_title(ostr: str = ""):
+    if not ostr:
+        return ""
+
+    dic = {
+        "0": "零",
+        "1": "一",
+        "2": "二",
+        "3": "三",
+        "4": "四",
+        "5": "五",
+        "6": "六",
+        "7": "七",
+        "8": "八",
+        "9": "九"
+    }
+    uni_list = ["", "十", "百", "千", "万", "十万", "百万", "千万", "亿"]
+
+    li = list(ostr)
+    li.reverse()
+    uni = 0
+    ret_str = []
+    for x in li:
+        if x not in dic:
+            ret_str.append(x)
+            continue
+
+        if "章" not in ret_str:
+            ret_str.append("章")
+        o_x = dic[x]
+
+        if len(ret_str) == 0 and o_x == "零":
+            o_x = ""
+
+        if len(o_x):
+            if o_x != "零":
+                o_x += uni_list[uni]
+            ret_str.append(o_x)
+        uni += 1
+    ret_str.reverse()
+    ret_str = "".join(ret_str)
+    if "第" not in ret_str:
+        ret_str = "第" + ret_str
+    return ret_str
+
+
+if __name__ == "__main__":
+    dictss = {"2": "s", "3": "d"}
+    for x in dictss.values():
+        print(x)

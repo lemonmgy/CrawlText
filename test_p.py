@@ -135,18 +135,42 @@
 # print("typepepeepep = = ")
 # print(rs.data.decode('GBK'))
 # print("typepepeepep = = ")
+import threading
+import time
+import queue
 
 
-class A:
-    __lis_xx = ["1"]
+def product(bq, count):
+    print(threading.current_thread().name + "put")
+    # bq.put("1")
+    for x in range(count):
+        print(threading.current_thread().name + "成产完成")
 
-    def prints(self):
-        print("sadf")
-        return
-        print("123222")
-
-        print("123")
+    # t = bq.get()
+    # print(threading.current_thread().name + "消费成功[ %s ]" % t)
+    # bq.get()
 
 
-if __name__ == "__main__":
-    A().prints()
+def consume(bq):
+
+    # 启动3个生产者线程
+    t1 = threading.Thread(target=product, args=(bq, 2))
+    t1.start()
+    t2 = threading.Thread(target=product, args=(bq, 3))
+    t2.start()
+    t3 = threading.Thread(target=product, args=(bq, 4))
+    t3.start()
+
+    t1.join()
+    t2.join()
+    t3.join()
+
+    print(threading.current_thread())
+
+
+# 创建一个容量为1的Queue
+bq = queue.Queue(maxsize=1)
+
+time.sleep(1)
+# 启动一个消费者线程
+threading.Thread(target=consume, args=(bq, )).start()

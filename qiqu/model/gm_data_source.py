@@ -33,6 +33,10 @@ class GMDataSource():
         if value and value in self.__data_list:
             self.__data_list.remove(value)
 
+    def clear(self):
+        self.__data_list.clear()
+        self.__data_dict.clear()
+
     def value(self, key):
         if key not in self.__data_dict:
             return None
