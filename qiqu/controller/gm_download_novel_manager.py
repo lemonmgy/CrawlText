@@ -4,25 +4,27 @@
 import re
 import os
 import shutil
+import threading
+from enum import Enum
 
 from .gm_biquge_request import GMBiqugeRequest
 
-from ..tools import GMDownloadCache
+from ..tools import GMHtmlString
 
 from ..model import GMBookChapter, GMBookInfo
 
-from gmhelper import GMValue, GMJson, GMFileManager
-from gmhelper import GMThreading
-
-from enum import Enum
+from gmhelper import GMValue, GMJson
+from gmhelper import GMThreading, GMFileManager
 
 
 class GMDownloadStatus(Enum):
-    suspend = 101
-    delete = 101
-    success = 200
-    downloading = 201
-    error = 503
+    start = 1
+    downloading = 3
+    wait = 5
+    suspend = 7
+    delete = 9
+    complete = 11
+    error = 13
 
 
 class GMDownloadRequest(object):
@@ -56,8 +58,8 @@ class GMDownloadResponse(object):
 
 
 class GMDownloadNovelManager(object):
-    __max_count = 3
-    __downloading_count = 0
+    __max_count = 1
+    __downloading_task = {}
     __all_tasks = {}
     __notifys = set()
 
@@ -69,47 +71,6 @@ class GMDownloadNovelManager(object):
         ob.__dict__ = cls.__state
         ob.__init_download_tasks()
         return ob
-
-    def __init_download_tasks(self):
-
-        if not self.__all_tasks:
-            data = GMDownloadCache.all_list_info()
-            if not data:
-                return
-            for e in data:
-                url = GMValue.valueStirng(e, GMDownloadCache.url_key)
-                name = GMValue.valueStirng(e, GMDownloadCache.name_key)
-                msg = GMValue.valueStirng(e, GMDownloadCache.msg_key)
-
-                response = GMDownloadResponse(GMDownloadStatus.suspend, msg,
-                                              url, name)
-                if url and name:
-                    self.__all_tasks[url] = GMDownloadNovelTask(
-                        None, self.__manager_callback, response)
-
-    def __counter(self, type):
-        if type == "add":
-            self.__downloading_count += 1
-            if self.__downloading_count > self.__downloading_count:
-                self.__downloading_count = self.__downloading_count
-        elif type == "sub":
-            self.__downloading_count -= 1
-            if self.__downloading_count < 0:
-                self.__downloading_count = 0
-        print("__counter：", self.__downloading_count)
-
-    def __manager_callback(self, response: GMDownloadResponse):
-        if not response:
-            return
-        if response.url and response.code != GMDownloadStatus.downloading:
-            self.__counter("sub")
-        if len(self.__notifys) and response.url in self.__all_tasks.keys():
-            for callback in self.__notifys:
-                callback(response)
-
-    @staticmethod
-    def tasks():
-        return list(GMDownloadNovelManager().__all_tasks.values())
 
     # 添加监听方法
     @staticmethod
@@ -130,6 +91,71 @@ class GMDownloadNovelManager(object):
             if notify and notify in m.__notifys:
                 m.__notifys.remove(notify)
 
+    m_lock = threading.RLock()
+
+    def __manager_callback(self, response: GMDownloadResponse):
+
+        if not response:
+            return
+        if response.url and response.code != GMDownloadStatus.downloading:
+            self.__del_counter(response.url)
+        if len(self.__notifys) and response.url in self.__all_tasks.keys():
+            if response.code == GMDownloadStatus.complete:
+                GMDownloadCache.save(response.url, response.name,
+                                     response.code)
+                self.delete(GMDownloadRequest(response.url, response.name),
+                            False)
+                self.__start_wait_task()
+            for callback in self.__notifys:
+                callback(response)
+        else:
+            self.delete(GMDownloadRequest(response.url, response.name), True)
+            self.__start_wait_task()
+
+    def __start_wait_task(self):
+        for t in self.__all_tasks.values():
+            if t.state == GMDownloadStatus.wait:
+                self.__start_task(t)
+                break
+
+    # 处理任务
+    def __init_download_tasks(self):
+
+        if not self.__all_tasks:
+            data = GMDownloadCache.all_list_info()
+            if not data:
+                return
+            for e in data:
+                url = GMValue.valueStirng(e, GMDownloadCache.url_key)
+                name = GMValue.valueStirng(e, GMDownloadCache.name_key)
+                msg = GMValue.valueStirng(e, GMDownloadCache.msg_key)
+
+                if url and name:
+                    response = GMDownloadResponse(GMDownloadStatus.suspend,
+                                                  msg, url, name)
+                    self.__all_tasks[url] = GMDownloadNovelTask(
+                        None, self.__manager_callback, response)
+
+    def __add_counter(self, task):
+        go = False
+        self.m_lock.acquire()
+        if len(self.__downloading_task.keys()) < self.__max_count:
+            self.__downloading_task[task.response.url] = task
+            print("__counter：", len(self.__downloading_task.keys()))
+            go = True
+        self.m_lock.release()
+        return go
+
+    def __del_counter(self, url):
+        go = False
+        self.m_lock.acquire()
+        if url in self.__downloading_task.keys():
+            del self.__downloading_task[url]
+            print("__counter：", len(self.__downloading_task.keys()))
+            go = True
+        self.m_lock.release()
+        return go
+
     def __add_task(self, request: GMDownloadRequest):
         # 开始任务
         task = GMDownloadNovelTask(request, self.__manager_callback)
@@ -137,16 +163,33 @@ class GMDownloadNovelManager(object):
         return task
 
     def __start_task(self, task):
-        if self.__downloading_count >= self.__max_count:
-            self.__manager_callback(
-                GMDownloadResponse(GMDownloadStatus.error, "下载数量达到最大！",
-                                   task.response.url, task.response.name))
-        else:
-            self.__counter("add")
+        if self.__add_counter(task):
+            task.state = GMDownloadStatus.start
             task.start()
+            return True
+        else:
+            task.state = GMDownloadStatus.wait
+            self.__manager_callback(
+                GMDownloadResponse(GMDownloadStatus.wait,
+                                   task.response.name + " 等待下载...",
+                                   task.response.url, task.response.name))
+            return False
+
+    @staticmethod
+    def tasks():
+        return list(GMDownloadNovelManager().__all_tasks.values())
+
+    @classmethod
+    def task_with_request(cls, request):
+        m = GMDownloadNovelManager()
+        if request.url and request.url in m.__all_tasks:
+            return m.__all_tasks[request.url]
+        return None
 
     @staticmethod
     def add(request: GMDownloadRequest):
+        if not GMBiqugeRequest.is_url(request.url):  # 本地
+            return
         m = GMDownloadNovelManager()
         msg = None
         if not request or not request.url or not request.name:
@@ -159,30 +202,34 @@ class GMDownloadNovelManager(object):
                 GMDownloadResponse(GMDownloadStatus.error, msg, request.url,
                                    request.name))
         else:
+            GMDownloadCache.save(request.url, request.name)
             task = m.__add_task(request)
             m.__start_task(task)
 
     @classmethod
-    def task_with_request(cls, request):
-        m = GMDownloadNovelManager()
-        if request.url and request.url in m.__all_tasks:
-            return m.__all_tasks[request.url]
-        return None
-
-    @classmethod
     def recovery(cls, request: GMDownloadRequest):
+        if not GMBiqugeRequest.is_url(request.url):  # 本地
+            return
         task = cls.task_with_request(request)
+        m = GMDownloadNovelManager()
         if task:
             if task.state != GMDownloadStatus.downloading:
-                m = GMDownloadNovelManager()
+                # vs = list(m.__downloading_task.values())
+                # if len(vs) > 0:
+                #     t = vs[0]
+                #     cls.suspend(
+                #         GMDownloadRequest(t.response.url, t.response.name))
                 m.__start_task(task)
         else:
-            GMDownloadNovelManager().add(request)
+            m.add(request)
 
     @classmethod
     def suspend(cls, request: GMDownloadRequest):
+        if not GMBiqugeRequest.is_url(request.url):  # 本地
+            return
         task = cls.task_with_request(request)
-        if task and task.state == GMDownloadStatus.downloading:
+        if task and (task.state == GMDownloadStatus.downloading
+                     or task.state == GMDownloadStatus.wait):
             task.state = GMDownloadStatus.suspend
             task.manager_callback = None
 
@@ -192,29 +239,54 @@ class GMDownloadNovelManager(object):
             task = m.__add_task(task.response)
             task.state = GMDownloadStatus.suspend
             task.is_cancel()
+            m.__start_wait_task()
 
     @classmethod
-    def delete(cls, request: GMDownloadRequest):
+    def delete(cls, request: GMDownloadRequest, clear_cache_info=True):
+        if not request.url:
+            return
         task = cls.task_with_request(request)
-        if task:
-            task.state = GMDownloadStatus.delete
-            name = request.name
-            if not name:
-                info = GMDownloadCache.info(request.url)
-                name = GMValue.valueStirng(info, GMDownloadCache.name_key)
+
+        if not task:
+            return
+
+        m = GMDownloadNovelManager()
+        task.state = GMDownloadStatus.delete
+        m.__del_counter(request.url)
+
+        # 处理下载文件
+        name = request.name
+        if not name and request.url:
+            info = GMDownloadCache.info(request.url)
+            name = GMValue.valueStirng(info, GMDownloadCache.name_key)
+        if name:
+            # 删除中间文件
+            path = GMFileManager.download_temp_path(name)
+            if os.path.exists(path):
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
+
+        if clear_cache_info:
+            del m.__all_tasks[request.url]
+            GMDownloadCache.remove(request.url)
             if name:
-                path = GMFileManager.downloadTempFilePath(name, '.txt')
+                if ".txt" not in name:
+                    name += ".txt"
+                path = GMFileManager.download_path(name, False)
                 if os.path.exists(path):
                     os.remove(path)
 
-            del GMDownloadNovelManager().__all_tasks[request.url]
-            GMDownloadCache.remove(request.url)
+        m.__start_wait_task()
 
 
 class GMDownloadNovelTask(object):
+    __thread_count = 5
     manager_callback = None
     response: GMDownloadResponse = None
     state = GMDownloadStatus.suspend
+    download_takss = None
 
     def __init__(self,
                  request: GMDownloadRequest = None,
@@ -232,23 +304,30 @@ class GMDownloadNovelTask(object):
 
         if response and not response.url and request and request.url:
             self.response.url = request.url
-
+        self.download_takss = {}
         super().__init__(*args, **kwargs)
 
     def start(self):
+        info = GMDownloadCache.info(self.response.url)
+        code = GMValue.value(info, GMDownloadCache.complete_key)
+        if code == GMDownloadStatus.complete:
+            self.callback(GMDownloadStatus.complete, "下载完成")
+            return
         if self.response.code == GMDownloadStatus.downloading:
             return
         self.response.code = GMDownloadStatus.downloading
         self.state = GMDownloadStatus.downloading
         """ 开始下载任务 """
-        GMThreading.start(self.__download_novel,
-                          "download_" + self.response.url)
+        GMThreading.start("download_" + self.response.url,
+                          self.__download_novel_info)
         return self
 
     # 回调
-    def callback(self, code=GMDownloadStatus.error, msg: str = ""):
+    def callback(self, code=GMDownloadStatus.error, msg: str = "", c_name=""):
         self.response.code = code
-        self.response.msg = self.response.name + " " + msg
+        if not c_name:
+            c_name = self.response.name
+        self.response.msg = c_name + " " + msg
         print("msg：", self.response.msg)
         if self.manager_callback:
             self.manager_callback(self.response)
@@ -256,124 +335,285 @@ class GMDownloadNovelTask(object):
     # 是否取消下载
     def is_cancel(self):
         if self.state == GMDownloadStatus.suspend:
-            self.callback(GMDownloadStatus.suspend, "暂停下载...")
+            self.callback(GMDownloadStatus.suspend, "已暂停...")
         elif self.state == GMDownloadStatus.delete:
             self.callback(GMDownloadStatus.suspend, "")
         return self.state != GMDownloadStatus.downloading
 
-    def __download_novel(self):
-
+    def __download_novel_info(self):
         # 开始下载章节
         self.callback(GMDownloadStatus.downloading, "获取信息中...")
         book_url = self.response.url
-        book_name = self.response.name
-        temp_path = GMFileManager.downloadTempFilePath(book_name, '.txt')
 
-        # 缓存书本信息  描述文件更替 待开启
-        cache_info = GMDownloadCache.info(book_url)
-        last_chapter_id = GMValue.valueStirng(cache_info, "chapter_id")
-        if not cache_info:
-            GMDownloadCache.save(book_url, book_name)
-
+        # 获取小说首页内容
         if self.is_cancel():
             return
-
-        # 或取消说首页内容
         gmJsonModel: GMJson = GMBiqugeRequest.getNovelListData(book_url)
         if self.is_cancel():
             return
 
+        # 获取model
         bookModel: GMBookInfo = None
-
         if gmJsonModel and gmJsonModel.model:
             bookModel: GMBookInfo = gmJsonModel.model
-
         if not bookModel or\
            not isinstance(bookModel, GMBookInfo) or\
            not bookModel.chapter_list:
             self.callback(GMDownloadStatus.error, "获取信息失败！！！")
         else:
+            count = self.__thread_count
             self.callback(GMDownloadStatus.downloading, "开始下载...")
+            li = list(bookModel.chapter_list)
+            co = int(len(li) / count)
 
-            chapter_list = list(bookModel.chapter_list)
-            index = 1
-            all_count = len(bookModel.chapter_list)
-            is_exists_id = False
-            last_chapter_id_index = 0
-            if last_chapter_id:
-                for ele_chapter in chapter_list:  # 章节列表
-                    last_chapter_id_index += 1
-                    if last_chapter_id == ele_chapter.chapter_id:
-                        is_exists_id = True
-                        break
-                if is_exists_id:
-                    if last_chapter_id_index < len(bookModel.chapter_list):
-                        chapter_list = chapter_list[(
-                            last_chapter_id_index):len(bookModel.chapter_list)]
-                    else:
-                        is_exists_id = False
-                else:
-                    last_chapter_id_index = 0
+            threads = []
+            for x in range(count):
+                maxindex = (x + 1) * co
+                if x == (count - 1):
+                    maxindex = len(li)
+                download_list = li[x * co:maxindex]
 
-            if os.path.exists(temp_path) and\
-               ((last_chapter_id and not is_exists_id) or not last_chapter_id):
-                os.remove(temp_path)
+                # if x != 1:
+                #     continue
+                g = GMThreading.start("download_" + self.response.name + "_" +
+                                      str(x),
+                                      self.__mulit_download_novel,
+                                      file_index=str(x),
+                                      download_list=download_list)
+                threads.append(g)
+            for t in threads:
+                t.thread.join()
 
-            for ele_chapter in chapter_list:  # 章节列表
-                if self.is_cancel():
-                    break
-
-                # 获取章节内容
-                chapter_data = GMBiqugeRequest.getNovelContentData(
-                    ele_chapter.chapter_url)
-
-                if self.is_cancel():
-                    break
-
-                chapterModel: GMBookChapter = chapter_data.model
-                chapter_title = ele_chapter.title
-
-                if chapterModel:
-                    if not chapter_title:
-                        chapter_title = chapterModel.title
-                    # 追加内容到文本中
-                    GMFileManager.appendContent(
-                        temp_path,
-                        (chapter_title + "\n" + chapterModel.content))
-                    # 描述文件更替 待开启
-                    GMDownloadCache.save(book_url, book_name,
-                                         ele_chapter.chapter_id)
-                else:
-                    print(chapter_title + "——下载失败，获取html出错")
-
-                # 向上层跑出结果
-                re_ret = re.search("第.+?章", chapter_title)
-                if re_ret:
-                    chapter_title = re_ret.group()
-                pros = str(index +
-                           last_chapter_id_index) + "/" + str(all_count)
-                # 处理打印文案
-                self.callback(GMDownloadStatus.downloading,
-                              chapter_title + " " + pros)
-                index += 1
-
+            print("完成")
             if self.state == GMDownloadStatus.downloading:
-                # 下载完成
-                # 下载完成移动为指导download文件夹下
-                down_file_path = GMFileManager.downloadFilePath(
-                    book_name, '.txt')
+                # 读取内容
+                content = ""
+                for t in threads:
+                    temp_path = GMDownloadCache.download_temp_path(
+                        self.response.name, t.re_kwargs["file_index"])
 
+                    if not os.path.exists(temp_path):
+                        continue
+                    content_temp = GMFileManager.read_content(temp_path)
+                    content += (("" if (len(content) == 0) else "\r\r") +
+                                content_temp)
+
+                # 获取下载路径
+                down_file_path = GMFileManager.download_path(
+                    self.response.name + '.txt')
                 # 下载文件夹存在文件先删除
                 if os.path.exists(down_file_path):
                     os.remove(down_file_path)
+                GMFileManager.write_content(down_file_path, content, True)
+                self.callback(GMDownloadStatus.complete, "下载完成")
 
-                if os.path.exists(temp_path):
-                    shutil.move(temp_path, GMFileManager.downloadFilePath())
-                    print("下载完成， 移动到对应位置 成功")
+    def mulit_save(self, index: str, chapter_id="", complete=""):
+        GMDownloadCache.mulit_save(self.response.name, index, chapter_id,
+                                   complete)
+
+    def __mulit_download_novel(self, file_index, download_list):
+        # 缓存书本信息  描述文件更替 待开启
+        cache_info = GMDownloadCache.mulit_info(self.response.name, file_index)
+        if GMValue.valueStirng(cache_info,
+                               GMDownloadCache.mulit_complete_key) == "1":
+            return
+        last_chapter_id = GMValue.valueStirng(cache_info, "chapter_id")
+        if not cache_info:
+            self.mulit_save(file_index)
+
+        temp_path = GMDownloadCache.download_temp_path(self.response.name,
+                                                       file_index)
+        chapter_list = list(download_list)
+        index = 1
+        all_count = len(download_list)
+        is_exists_id = False
+        last_chapter_id_index = 0
+        if last_chapter_id:
+            for ele_chapter in chapter_list:  # 章节列表
+                last_chapter_id_index += 1
+                if last_chapter_id == ele_chapter.chapter_id:
+                    is_exists_id = True
+                    break
+            if is_exists_id:
+                if last_chapter_id_index < len(download_list):
+                    chapter_list = chapter_list[(
+                        last_chapter_id_index):len(download_list)]
                 else:
-                    print("下载文件不存在 移动到对应位置 失败")
+                    is_exists_id = False
+            else:
+                last_chapter_id_index = 0
 
-                # 移除缓存文件
-                GMDownloadCache.remove(book_url)
+        if os.path.exists(temp_path) and\
+           ((last_chapter_id and not is_exists_id) or not last_chapter_id):
+            os.remove(temp_path)
 
-                self.callback(GMDownloadStatus.success, "下载完成")
+        max_index = len(chapter_list)
+        for ele_chapter in chapter_list:  # 章节列表
+            if self.is_cancel():
+                break
+
+            # 获取章节内容
+            chapter_data = GMBiqugeRequest.getNovelContentData(
+                ele_chapter.chapter_url)
+
+            if self.is_cancel():
+                break
+
+            chapterModel: GMBookChapter = chapter_data.model
+            chapter_title = GMHtmlString.conversion_title(ele_chapter.title)
+
+            if chapterModel:
+                if not chapter_title:
+                    chapter_title = chapterModel.title
+                # 追加内容到文本中
+                GMFileManager.write_content(
+                    temp_path, (chapter_title + "\n" + chapterModel.content))
+                complete = "0" if index < max_index else "1"
+                self.mulit_save(file_index, ele_chapter.chapter_id, complete)
+            else:
+                print(chapter_title + "——下载失败，获取html出错")
+
+            # 向上层跑出结果
+            re_ret = re.search("第.+?章", chapter_title)
+            if re_ret:
+                chapter_title = re_ret.group()
+            pros = str(index + last_chapter_id_index) + "/" + str(all_count)
+
+            # 处理打印文案
+            self.callback(GMDownloadStatus.downloading,
+                          chapter_title + " " + pros,
+                          c_name=self.response.name + "_" + str(file_index))
+            index += 1
+
+
+class GMDownloadCache():
+
+    __download_file_path = GMFileManager.download_temp_path(
+        '.download_info.json')
+    url_key = "book_url"
+    name_key = "book_name"
+    author_key = "book_author"
+    msg_key = "msg_key"
+    complete_key = "complete_key"
+
+    @classmethod
+    def save(cls,
+             book_url: str,
+             name: str,
+             status: GMDownloadStatus = GMDownloadStatus.suspend):
+        if not book_url or not name:
+            return
+        if not status or status != GMDownloadStatus.complete:
+            msg = " 已暂停"
+        else:
+            msg = " 已完成"
+
+
+        #warning unfinished code --- 需要完成状态
+        cache_dict = dict(GMDownloadCache.__read_info())
+        cache_dict[book_url] = {
+            cls.url_key: book_url,
+            cls.name_key: name,
+            cls.msg_key: name + msg,
+            cls.complete_key: status
+        }
+        GMDownloadCache.__write_info(cache_dict)
+
+    @classmethod
+    def remove(cls, book_url: str = None):
+        if not book_url:
+            return
+        cache_dict = dict(GMDownloadCache.__read_info())
+
+        if book_url in cache_dict.keys():
+            del cache_dict[book_url]
+        GMDownloadCache.__write_info(cache_dict)
+
+    @classmethod
+    def all_list_info(cls):
+        cache_dict = dict(GMDownloadCache.__read_info())
+        if cache_dict:
+            return cache_dict.values()
+        return None
+
+    @classmethod
+    def info(cls, book_url):
+        if book_url:
+            cache_dict = GMDownloadCache.__read_info()
+            if book_url in list(cache_dict.keys()):
+                return cache_dict[book_url]
+        return None
+
+    @classmethod
+    def __read_info(cls):
+        info_path = GMDownloadCache.__download_file_path
+        content = GMFileManager.read_content(info_path)
+
+        cache_dict: dict = None
+        if content:
+            try:
+                cache_dict = GMJson.loads(content)
+            finally:
+                pass
+
+        if not cache_dict:
+            cache_dict = {}
+
+        return cache_dict
+
+    @classmethod
+    def __write_info(cls, cache_dict):
+        info_path = GMDownloadCache.__download_file_path
+        GMFileManager.write_content(info_path, cache_dict, True)
+
+    mulit_name_key = "book_name"
+    mulit_chapter_id_key = "chapter_id"
+    mulit_msg_key = "msg_key"
+    mulit_complete_key = "complete_key"
+
+    @classmethod
+    def mulit_save(cls,
+                   name: str,
+                   index: str,
+                   chapter_id: str = "",
+                   complete=""):
+
+        if not name:
+            return
+        if not chapter_id:
+            chapter_id = ""
+
+        cache_dict = {
+            cls.mulit_name_key: name,
+            cls.mulit_chapter_id_key: chapter_id,
+            cls.mulit_msg_key: name + " 已暂停...",
+            cls.mulit_complete_key: complete
+        }
+        info_path = cls.download_temp_info_path(name, index)
+        GMFileManager.write_content(info_path, cache_dict, True)
+
+    @classmethod
+    def mulit_info(cls, name: str, index: str):
+        if not name:
+            return None
+
+        info_path = cls.download_temp_info_path(name, index)
+        content = GMFileManager.read_content(info_path)
+
+        cache_dict: dict = None
+        if content:
+            try:
+                cache_dict = GMJson.loads(content)
+            finally:
+                pass
+        return cache_dict
+
+    @classmethod
+    def download_temp_info_path(cls, name: str, index: str):
+        return GMFileManager.download_temp_path(name + "/" +
+                                                ('.download_info_' + index) +
+                                                ".json")
+
+    @classmethod
+    def download_temp_path(cls, name: str, index: str):
+        return GMFileManager.download_temp_path(name + "/" + index + ".txt")

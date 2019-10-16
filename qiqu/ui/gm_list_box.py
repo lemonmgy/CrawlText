@@ -5,6 +5,8 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.constants as tk_cons
 
+from enum import Enum
+
 
 # 列表中展示数据模型
 class GMListboxListModel(object):
@@ -61,7 +63,16 @@ class GMWidgetHelper(object):
         self.is_packed = False
 
 
+class GMListboxListStyle(Enum):
+    no_title = 0
+    title = 1
+    menu_title = 2
+
+
 class GMListbox(object):
+
+    style: GMListboxListStyle = GMListboxListStyle.no_title
+
     # 背景frame
     back_frame: tk.Frame
     top_title_view: tk.Frame
@@ -113,17 +124,24 @@ class GMListbox(object):
                 return
         self.select_item_change()
 
-    def __init__(self, master=None, item_click_callback=None, *args, **kwargs):
-        self.item_click_callback = item_click_callback
+    def __init_data(self):
         self.gm_list_box_contents = tk.StringVar()
         self.top_menu_title_stringVar = tk.StringVar()
         self.top_label_title_stringVar = tk.StringVar()
         self.gm_list_box_books_data = []
 
+    def __init__(self,
+                 master=None,
+                 item_click_callback=None,
+                 style=GMListboxListStyle.no_title,
+                 *args,
+                 **kwargs):
+        self.item_click_callback = item_click_callback
+        self.__init_data()
+
         self.back_frame = tk.Frame(master)
 
         self.top_title_view = tk.Frame(self.back_frame, height=25)
-        self.top_title_view.pack(fill=tk_cons.X)
 
         self.top_label_title = tk.Label(
             self.top_title_view, textvariable=self.top_label_title_stringVar)
@@ -134,10 +152,30 @@ class GMListbox(object):
 
         self.gm_list_box = tk.Listbox(self.back_frame,
                                       listvariable=self.gm_list_box_contents)
-        self.gm_list_box.pack(fill=tk_cons.BOTH, expand=tk_cons.YES)
         self.gm_list_box.bind("<ButtonRelease-1>", self.item_click)
+        self.set_style(style)
         self.show_loading()
         super().__init__(*args, **kwargs)
+
+    def set_style(self, style):
+        self.style = style
+        if style == GMListboxListStyle.title:
+            self.top_title_view.pack_forget()
+            self.top_title_view.pack(fill=tk_cons.X)
+            self.top_label_title.pack_forget()
+            self.top_label_title.pack()
+        elif style == GMListboxListStyle.menu_title:
+            self.top_title_view.pack_forget()
+            self.top_title_view.pack(fill=tk_cons.X)
+            self.top_menu_title.pack_forget()
+            self.top_menu_title.pack(side=tk_cons.LEFT)
+        else:
+            self.top_title_view.pack_forget()
+            self.top_menu_title.pack_forget()
+
+        self.gm_list_box.pack_forget()
+        self.gm_list_box.pack(fill=tk_cons.BOTH, expand=tk_cons.YES)
+        self.back_frame.update()
 
     loading = None
 
@@ -158,19 +196,16 @@ class GMListbox(object):
             self.loading = None
 
     def setTopTitle(self, title):
-        self.top_label_title.pack_forget()
-        self.top_label_title.pack()
         self.top_label_title_stringVar.set(title)
-        self.is_no_menu = True
         return self
 
     def update_list_contetns(self,
                              list_data: [GMListboxMenuModel],
                              defalut_index=None):
         self.hide_loading()
-        if not list_data:
+        if not list_data or not isinstance(list_data, list):
             list_data = []
-        if not self.is_no_menu:
+        if self.style == GMListboxListStyle.menu_title:
             old_count = len(self.gm_list_box_books_data)
             new_count = len(list_data)
             if old_count == 0 and new_count != 0:
@@ -190,13 +225,14 @@ class GMListbox(object):
         else:
             select_model = None
 
-        if not self.is_no_menu:
+        if self.style == GMListboxListStyle.menu_title:
             menu_titles = []
             for menuModel in self.gm_list_box_books_data:
                 menuModel.menu_title = self.menu_title_key(
                     menu_titles, menuModel.menu_title)
                 menu_titles.append(menuModel.menu_title)
             self.top_menu_title.set_menu(None, *menu_titles)
+            self.top_menu_title.update()
 
         self.__update_selected_model(select_model)
 
@@ -228,7 +264,7 @@ class GMListbox(object):
     def __update_selected_model(self, selectedModel=None):
         self.selected_model = selectedModel
         if self.selected_model:
-            if not self.is_no_menu:
+            if self.style == GMListboxListStyle.menu_title:
                 top_title = self.selected_model.menu_title if len(
                     self.selected_model.menu_title) > 0 else "未设置标题"
                 self.top_menu_title_stringVar.set(top_title)
