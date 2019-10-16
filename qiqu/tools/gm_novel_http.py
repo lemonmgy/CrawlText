@@ -4,13 +4,13 @@
 from gmhelper import GMHTTP
 
 
-class GMNovelHttp():
+class GMNovelHttp(GMHTTP):
     bqg_host = "https://www.biquge.cm"
     bqg_search_url = bqg_host + "/modules/article/sou.php"
 
     @classmethod
-    def requestBQYHTML(self, url, params=None, log=True):
-        response = GMHTTP.get(url, params, fields_encoding="gb2312", log=log)
+    def requestBQYHTML(cls, url, params=None, log=True):
+        response = cls.get(url, params, fields_encoding="gb2312", log=log)
         try:
             # response.data = response.data.decode('GBK', "replace")
             response.data = response.data.decode('GBK', "ignore")

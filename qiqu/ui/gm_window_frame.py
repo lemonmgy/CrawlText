@@ -20,8 +20,8 @@ class GMWindowFrame(tk.Tk):
     def loadSubFrame(self):
         self.__menubar()
         GMHomeFrame.show(self)
-        l = tk.Label(self, text="下载列表", height=2)
-        l.pack()
+        li = tk.Label(self, text="下载列表", height=2)
+        li.pack()
         GMDownloadFrame.show(self)
 
     def __menubar(self):
@@ -33,7 +33,7 @@ class GMWindowFrame(tk.Tk):
         menubar.add_cascade(label="文件", menu=home_menu)
 
     def __download_completed(self):
-        os.system("open " + GMFileManager.downloadFilePath())
+        os.system("open " + GMFileManager.download_path())
 
     __download_frame = None
 

@@ -5,7 +5,8 @@ import tkinter as tk
 import tkinter.messagebox as tkMessage
 import tkinter.constants as tk_cons
 
-from .gm_list_box import GMListbox, GMListboxListStyle, GMListboxMenuModel, GMListboxListModel
+from .gm_list_box import GMListbox, GMListboxListStyle
+from .gm_list_box import GMListboxMenuModel, GMListboxListModel
 
 from ..model import GMModuleBook, GMBookInfo
 
