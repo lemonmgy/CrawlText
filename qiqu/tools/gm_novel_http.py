@@ -10,7 +10,7 @@ class GMNovelHttp(GMHTTP):
 
     @classmethod
     def requestBQYHTML(cls, url, params=None, log=True):
-        response = cls.get(url, params, fields_encoding="gb2312", log=log)
+        response = cls.request(url, params, fields_encoding="gb2312", log=log)
         try:
             # response.data = response.data.decode('GBK', "replace")
             response.data = response.data.decode('GBK', "ignore")

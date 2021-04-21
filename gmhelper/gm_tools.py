@@ -212,15 +212,19 @@ class GMHTTP(object):
             Chrome/71.0.3578.98 Safari/537.36')
 
     @classmethod
-    def get(cls,
-            url,
-            fields=None,
-            headers=None,
-            fields_encoding=None,
-            log=True):
+    def request(cls,
+                url,
+                fields=None,
+                headers=None,
+                fields_encoding=None,
+                method="GET",
+                data_decode=None,
+                log=True):
+        print(url)
         if not cls.is_url(url):  # 本地
             gm_r = GMHTTPResponse()
             gm_r.url = url
+            print("not")
             return gm_r
         """
         http get 请求
@@ -235,16 +239,27 @@ class GMHTTP(object):
             url = url + "?" + paramsStr
             new_fields = None
 
-        http = urllib3.PoolManager()
         http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED',
                                    ca_certs=certifi.where())
-        if log:
-            print(url + "    status = start")
-        response = http.request('GET', url, new_fields, headers)
 
+        if log:
+            print(url + "    status = 0")
+        response = http.request(method, url, new_fields, headers)
         gm_r = GMHTTPResponse()
         gm_r.url = url
-        gm_r.data = response.data
+        try:
+            if (data_decode is None):
+                gm_r.data = (response.data).decode()
+            else:
+                gm_r.data = (response.data).decode(data_decode, 'ignore')
+        except IOError as e:
+            print(e)
+            print("内容有问题：" + url)
+        finally:
+            if len(response.data) == 0:
+                print("出错的链接：" + url + "      status = " +
+                      str(response.status))
+
         gm_r.status = response.status
         gm_r.o_response = response
         if log:
