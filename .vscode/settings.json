@@ -25,5 +25,6 @@
     "**/__init__.pyc": true,
     "*.spec": true
   },
-  "python.pythonPath": "/usr/local/opt/python/bin/python3.7"
+  "python.pythonPath": "/usr/local/opt/python@3.8/bin/python3.8",
+  "python.formatting.provider": "yapf"
 }

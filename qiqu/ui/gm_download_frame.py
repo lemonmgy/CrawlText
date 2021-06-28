@@ -5,7 +5,6 @@ import tkinter as tk
 import tkinter.messagebox as tkMessage
 import tkinter.constants as tk_cons
 from tkinter import ttk
-import os
 
 from ..model import GMDataSource
 from .gm_list_box import GMListbox, GMListboxMenuModel, GMListboxListModel
@@ -14,14 +13,13 @@ from gmhelper import GMThreading
 
 from ..controller import GMDownloadNovelManager, GMDownloadStatus
 from ..controller import GMDownloadRequest, GMDownloadResponse
-from gmhelper import GMFileManager
 
 
 class GMDownloadFrame(tk.Frame):
-    __novel_chapter_gm_list_box: GMListbox = None
-    __downloading_dataSource: GMDataSource = None
-    __selected_model: GMListboxListModel = None
-    __menu_model = None
+    __novel_chapter_gm_list_box: GMListbox
+    __downloading_dataSource: GMDataSource
+    __selected_model: GMListboxListModel
+    __menu_model: GMListboxMenuModel
 
     def destroy(self):
         GMDownloadNovelManager.del_notify(self.downlaod_click_callback)
@@ -46,7 +44,7 @@ class GMDownloadFrame(tk.Frame):
         GMDownloadNovelManager.add_notify(self.downlaod_click_callback)
 
         self.__downloading_dataSource = GMDataSource()
-        self.__search_ret_data = GMListboxMenuModel()
+        # self.__search_ret_data = GMListboxMenuModel()
 
         self.__menu_model = GMListboxMenuModel()
         self.__menu_model.list_datas = self.__downloading_dataSource.dataList()
@@ -179,7 +177,7 @@ class GMDownloadFrame(tk.Frame):
 
 
 class GMDownloadToplevel(tk.Toplevel):
-    download_frame: GMDownloadFrame = None
+    download_frame: GMDownloadFrame
 
     def __init__(self, master=None, cnf={}, **kw):
         super().__init__(master=master, cnf={}, **kw)

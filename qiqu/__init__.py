@@ -7,3 +7,6 @@ from .controller import GMBiqugeRequest
 
 if __name__ == "__main__":
     GMWindowFrame()
+    GMBiqugeRequest()
+    GMNovelHttp()
+    GMHtmlString()
